@@ -4,7 +4,7 @@ node_modules/
 .cache/
 
 # Build output
-dist/
+dist
 .nuxt/
 .output/
 coverage/
