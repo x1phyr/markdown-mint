@@ -1,0 +1,294 @@
+:root {
+  color: #20211f;
+  background: #f4f2ec;
+  font-family:
+    Inter,
+    "Noto Sans SC",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.site-shell {
+  min-height: 100vh;
+  padding: 0 32px;
+}
+
+.site-header,
+footer {
+  display: flex;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-header {
+  min-height: 76px;
+  border-bottom: 1px solid rgb(32 33 31 / 12%);
+}
+
+.brand {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.brand-mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  color: #f7fbf9;
+  background: #2f735f;
+  border-radius: 9px;
+  place-items: center;
+}
+
+nav {
+  display: flex;
+  gap: 24px;
+  color: #64675f;
+  font-size: 14px;
+}
+
+main {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.hero {
+  max-width: 900px;
+  padding: 116px 0 104px;
+}
+
+.eyebrow {
+  margin: 0 0 20px;
+  color: #2f735f;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2 {
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+h1 {
+  max-width: 850px;
+  margin-bottom: 28px;
+  font-size: clamp(56px, 8vw, 96px);
+  line-height: 0.98;
+}
+
+.lede {
+  max-width: 680px;
+  margin-bottom: 36px;
+  color: #64675f;
+  font-size: 20px;
+  line-height: 1.65;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+}
+
+.hero-actions button {
+  padding: 14px 19px;
+  color: white;
+  background: #2f735f;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.hero-actions a {
+  padding-bottom: 5px;
+  border-bottom: 1px solid #2f735f;
+  color: #2f735f;
+  font-weight: 700;
+}
+
+.theme-section {
+  padding: 90px 0 120px;
+  border-top: 1px solid rgb(32 33 31 / 12%);
+}
+
+.section-heading {
+  max-width: 660px;
+  margin-bottom: 54px;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1.05;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+.theme-card {
+  display: grid;
+  gap: 24px;
+}
+
+.theme-card h3 {
+  margin-bottom: 8px;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 24px;
+}
+
+.theme-card p {
+  color: #6a6d65;
+  line-height: 1.65;
+}
+
+.paper-preview {
+  display: flex;
+  min-height: 430px;
+  padding: 48px 42px;
+  flex-direction: column;
+  background: white;
+  border: 1px solid rgb(32 33 31 / 10%);
+  border-radius: 3px;
+  box-shadow: 0 18px 50px rgb(43 45 40 / 10%);
+}
+
+.paper-preview[data-tone="technical"] {
+  border-top: 8px solid #2f735f;
+}
+
+.paper-preview[data-tone="minimal"] {
+  background: #fbfbf8;
+}
+
+.paper-preview[data-tone="editorial"] {
+  color: #463226;
+  background: #f9f0e4;
+}
+
+.preview-kicker {
+  margin-bottom: 70px;
+  color: #787b73;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.preview-title {
+  max-width: 210px;
+  margin-bottom: 30px;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.preview-rule {
+  width: 48px;
+  height: 3px;
+  margin-bottom: 42px;
+  background: #2f735f;
+}
+
+.preview-line {
+  width: 82%;
+  height: 6px;
+  margin-bottom: 12px;
+  background: currentColor;
+  border-radius: 999px;
+  opacity: 0.13;
+}
+
+.preview-line--long {
+  width: 100%;
+}
+
+.preview-line--short {
+  width: 58%;
+}
+
+footer {
+  min-height: 100px;
+  border-top: 1px solid rgb(32 33 31 / 12%);
+  color: #6a6d65;
+  font-size: 13px;
+}
+
+@media (max-width: 820px) {
+  .site-shell {
+    padding: 0 20px;
+  }
+
+  .hero {
+    padding: 82px 0 76px;
+  }
+
+  h1 {
+    font-size: clamp(48px, 15vw, 72px);
+  }
+
+  .theme-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .paper-preview {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 540px) {
+  .hero-actions,
+  footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  footer {
+    padding: 28px 0;
+  }
+}

@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  esbuild: true
+minimumReleaseAge: 1440
+overrides:
+  "@nuxt/cli": 3.34.0
+  unctx: 2.5.0
