@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "clean": "rm -rf .nuxt .output",
+    "build:pages": "nuxt build --preset github_pages",
+    "clean": "rm -rf .nuxt .output dist",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "postinstall": "nuxt prepare",

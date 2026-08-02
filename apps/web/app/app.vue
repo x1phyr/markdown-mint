@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { useRuntimeConfig } from "#imports";
+
+const {
+  app: { baseURL },
+} = useRuntimeConfig();
+
 const themes = [
   {
     description: "Clear hierarchy for architecture notes, API guides, and engineering reports.",
@@ -21,7 +27,7 @@ const themes = [
 <template>
   <div class="site-shell">
     <header class="site-header">
-      <a class="brand" href="/" aria-label="MarkdownMint home">
+      <a class="brand" :href="baseURL" aria-label="MarkdownMint home">
         <span class="brand-mark">M</span>
         <span>MarkdownMint</span>
       </a>

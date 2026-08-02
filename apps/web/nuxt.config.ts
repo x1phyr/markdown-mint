@@ -1,7 +1,10 @@
+const baseURL = process.env.NUXT_APP_BASE_URL ?? "/";
+
 export default defineNuxtConfig({
   app: {
+    baseURL,
     head: {
-      link: [{ href: "/favicon.svg", rel: "icon", type: "image/svg+xml" }],
+      link: [{ href: `${baseURL}favicon.svg`, rel: "icon", type: "image/svg+xml" }],
       meta: [
         {
           content:

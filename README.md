@@ -1,5 +1,10 @@
 # MarkdownMint
 
+[![CI](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml/badge.svg)](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml)
+[![Deploy Pages](https://github.com/x1phyr/markdown-mint/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/x1phyr/markdown-mint/actions/workflows/deploy-pages.yml)
+
+在线预览：[x1phyr.github.io/markdown-mint](https://x1phyr.github.io/markdown-mint/)
+
 > Turn finished Markdown into carefully designed PDF and standalone HTML documents.
 >
 > 将写好的 Markdown 铸造成适合交付、发布与归档的精美 PDF 和独立 HTML 文档。
@@ -59,6 +64,7 @@ pnpm dev
 | `pnpm dev`          | 启动 Web 应用            |
 | `pnpm dev:renderer` | 启动本地渲染器健康端点   |
 | `pnpm build`        | 构建全部应用和包         |
+| `pnpm build:pages`  | 构建 GitHub Pages 静态站 |
 | `pnpm test`         | 运行单元测试             |
 | `pnpm typecheck`    | 运行全部 TypeScript 检查 |
 | `pnpm lint`         | 运行 ESLint              |
@@ -71,6 +77,7 @@ pnpm dev
 - [v1.0 开发路线图](docs/roadmap-v1.md)
 - [主题开发规范](docs/theme-authoring.md)
 - [开源软件工作流](docs/opensource-workflow.md)
+- [部署与运维](docs/deployment.md)
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
 - [治理模型](GOVERNANCE.md)
