@@ -42,7 +42,7 @@ RUN mkdir -p /ms-playwright \
 COPY apps/renderer apps/renderer
 COPY packages packages
 
-RUN pnpm --filter @markdown-mint/renderer build
+RUN pnpm --filter @markdown-mint/renderer... build
 
 RUN mkdir -p /var/lib/markdown-mint && chown -R node:node /var/lib/markdown-mint
 

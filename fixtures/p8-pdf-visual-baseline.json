@@ -5,43 +5,43 @@
   "pages": [
     {
       "file": "page-01.png",
-      "sha256": "768654464dcb20cdaa632bedf48387f1e888d79f0b676eac063b4d3ecef99b07"
+      "sha256": "fc209f3ede17b009cb7ce316c275fc65fb3d5894bed12db0cd71ba99bb165032"
     },
     {
       "file": "page-02.png",
-      "sha256": "14d084c7cddf093970d41a2670bdb938dcc944443033b3da97d7586b0d7e1851"
+      "sha256": "ee5cad19cee27e23cc3d5eea1b16ca98ce0272e6fc4e3e7ce901faf62d6cac82"
     },
     {
       "file": "page-03.png",
-      "sha256": "5eff27961cf406dfd4b4b6b76fb117b95c643b2c2678660f1f9e8f28d0c6e288"
+      "sha256": "1d54dbea02fb7bdc51dbdf980f7ca97b45b68ea16c3d14cc5564ca9054ab3b0f"
     },
     {
       "file": "page-04.png",
-      "sha256": "22fddccae70a9cac0a0b562e55331be1d06426c9531265cb3a96b2bdd5fe812e"
+      "sha256": "3b20e38a2b8d8357ed793a04432a581d34801b270de35a222117e69bc92cc010"
     },
     {
       "file": "page-05.png",
-      "sha256": "0a665610a41b003397fd8d820dce053ae42997d8a4b6c7ef7ffbbde2a90d72fc"
+      "sha256": "719443c8f92f4345553b375c6fb6088494ff6660604e84e01fbc0b080a920ffd"
     },
     {
       "file": "page-06.png",
-      "sha256": "eb4d7f4ba90f23f6ae39717486a07453b7c99c631d55a37abf4201047702aa6b"
+      "sha256": "10c113a84b8190e5fbc4ffaf6d11fa6fc6a1b2f5dca712ce8161253e9c7dda4c"
     },
     {
       "file": "page-07.png",
-      "sha256": "87f99ec993e47c76fba5942d49eea73df003ab8d68ef1a5f3b268837a07bdfe5"
+      "sha256": "03646e11432d8361b3cda71c55b51dbf09e19b4963885e28e8d521d6060348f1"
     },
     {
       "file": "page-08.png",
-      "sha256": "25e5027bfd209ddf29d37c5b8b336baa5d3734ad02c79943004eb49cd524fe56"
+      "sha256": "3699e7bd657f50bb6501cbbbd5982e5d0e753913d95113b79df8fe5bb30b7082"
     },
     {
       "file": "page-09.png",
-      "sha256": "150b32e3bf6e762cf15d186d31d133e096a7c22133329f09a93cebeeaab68ea5"
+      "sha256": "9b28319f67e823d8fbffdc9df6facafc9f7bceebe4475fe24b563c487dea2dad"
     },
     {
       "file": "page-10.png",
-      "sha256": "7ddb46f74d048008f8f6f99812e4f5c4a58df7092196a52133c0dc0ffaca15e7"
+      "sha256": "afcb93cbf12f52ca1020e32d80d5d83aff726d222ca4027598e78dbb3fa46fd7"
     }
   ],
   "renderer": "playwright-chromium"

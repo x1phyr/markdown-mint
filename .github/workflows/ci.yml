@@ -354,8 +354,13 @@ jobs:
       - name: Build renderer and dependencies for export E2E
         run: pnpm --filter @markdown-mint/renderer... build
 
-      - name: Install pinned browser runtime
-        run: pnpm --filter @markdown-mint/renderer exec playwright install --with-deps ${{ matrix.browser }}
+      - name: Install pinned browser runtimes
+        run: |
+          browsers=chromium
+          if [ "${{ matrix.browser }}" != "chromium" ]; then
+            browsers="$browsers ${{ matrix.browser }}"
+          fi
+          pnpm --filter @markdown-mint/renderer exec playwright install --with-deps $browsers
 
       - name: Run Web E2E smoke
         env:
