@@ -28,6 +28,7 @@ ENV XDG_CACHE_HOME=/tmp/.cache
 RUN mkdir -p /ms-playwright \
   && pnpm --filter @markdown-mint/renderer exec playwright install --with-deps chromium \
   && apt-get update \
+  && apt-get upgrade --no-install-recommends --yes \
   && apt-get install --no-install-recommends --yes fonts-liberation fonts-wqy-zenhei \
   && mkdir -p /usr/share/markdown-mint/licenses \
   && cp node_modules/playwright/LICENSE /usr/share/markdown-mint/licenses/playwright-LICENSE \
