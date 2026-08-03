@@ -3,7 +3,7 @@ services:
     type: web
     runtime: docker
     region: singapore
-    plan: starter
+    plan: free
     dockerfilePath: apps/renderer/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -16,18 +16,13 @@ services:
       - key: RENDERER_VERSION
         value: 1.0.0-rc.1
       - key: RENDERER_DATA_DIR
-        value: /var/lib/markdown-mint
+        value: /tmp/markdown-mint
       - key: RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS
         value: "300"
       - key: RENDERER_DOWNLOAD_SIGNING_SECRET
         generateValue: true
       - key: RENDERER_CORS_ORIGIN
         sync: false
-    disk:
-      name: renderer-data
-      mountPath: /var/lib/markdown-mint
-      sizeGB: 1
-
   - name: markdown-mint-web
     type: web
     runtime: node

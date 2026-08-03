@@ -10,13 +10,13 @@ Render 上创建两个服务：
 2. `markdown-mint-renderer`：Docker Web 服务，内置 Chromium，负责 PDF/HTML 生成。
 
 浏览器会直接调用 Renderer，因此 Renderer 必须有 HTTPS 公网地址；通过
-`RENDERER_CORS_ORIGIN` 只允许 Web 服务来源。Renderer 的任务元数据、PDF/HTML 和缩略图写入
-Render 持久磁盘，单实例运行，不开启多实例扩容。
+`RENDERER_CORS_ORIGIN` 只允许 Web 服务来源。零成本预览部署会把 Renderer 的任务元数据、
+PDF/HTML 和缩略图写入实例的临时文件系统，服务重启后数据会丢失。
 
 根目录的 [render.yaml](../render.yaml) 已声明这两个服务：Renderer 使用
-`apps/renderer/Dockerfile`，Web 使用 Nuxt Node 运行时；两个服务默认部署在 Singapore。Renderer
-使用 `starter` 计划以支持持久磁盘，Web 使用 `free` 计划；如需避免 Web 休眠，可在 Render 中把 Web
-升级到付费计划。
+`apps/renderer/Dockerfile`，Web 使用 Nuxt Node 运行时；两个服务默认部署在 Singapore，并且都明确
+使用 `free` 计划。这样 Blueprint 不会因为省略 `plan` 而创建默认的付费 `starter` 实例，也不会创建
+付费持久磁盘。免费实例会休眠、资源有限且文件系统不持久，只适合预览和试用，不应当作生产环境。
 
 ## Render 首次部署
 
@@ -90,7 +90,7 @@ HOST=0.0.0.0
 PORT=4310
 RENDERER_CORS_ORIGIN=https://<web-origin>
 RENDERER_DOWNLOAD_SIGNING_SECRET=<至少 32 个随机字符>
-RENDERER_DATA_DIR=/var/lib/markdown-mint
+RENDERER_DATA_DIR=/tmp/markdown-mint
 ```
 
 `RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS` 默认 300 秒；`RENDERER_RETENTION_MS` 默认 1 小时，
@@ -130,7 +130,9 @@ pnpm build
 
 ## 数据与备份
 
-Renderer 的 `RENDERER_DATA_DIR` 下包含 `jobs/`、`artifacts/` 和 `thumbnails/`。不要只备份产物目录，
+Renderer 的 `RENDERER_DATA_DIR` 下包含 `jobs/`、`artifacts/` 和 `thumbnails/`。免费 Render 实例使用
+临时文件系统，重启后这些内容会丢失，也不能按下面的方法做持久备份。升级到带持久磁盘的付费实例后，
+将目录改为 `/var/lib/markdown-mint`；不要只备份产物目录，
 因为恢复幂等键和任务状态需要 `jobs/` 元数据。仓库提供归档脚本：
 
 ```bash
@@ -149,8 +151,8 @@ docker run --rm \
   --archive /backup/renderer-data-<timestamp>.tgz
 ```
 
-Render 持久磁盘只能挂载到单个服务实例，不能与多实例扩容一起使用；部署前应确认磁盘容量、备份、
-恢复和保留期策略。归档包含用户 Markdown 和上传资源，必须按生产数据处理。
+Render 持久磁盘只能用于付费实例，只能挂载到单个服务实例，不能与多实例扩容一起使用；升级前应确认
+磁盘容量、备份、恢复和保留期策略。归档包含用户 Markdown 和上传资源，必须按生产数据处理。
 
 ## 镜像清理
 
