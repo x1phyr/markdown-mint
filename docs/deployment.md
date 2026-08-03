@@ -11,7 +11,7 @@ MarkdownMint 的展示站通过 GitHub Actions 部署到 GitHub Pages。`main` �
 
 1. Pull Request 运行 `CI / quality` 和 `CI / build`；
 2. 变更合并到 `main`；
-3. `.github/workflows/deploy-pages.yml` 运行 `pnpm build:pages`；
+3. `.github/workflows/deploy-pages.yml` 先构建 Web 依赖 workspace，再运行 `pnpm build:pages`；
 4. Nuxt 使用 `github_pages` preset 预渲染站点；
 5. `apps/web/.output/public` 上传为 Pages artifact；
 6. GitHub 将 artifact 发布到 `github-pages` environment。
