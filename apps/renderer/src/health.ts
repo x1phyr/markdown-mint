@@ -4,7 +4,9 @@ export interface HealthPayload {
   version: string;
 }
 
-export function createHealthPayload(version = "0.0.0"): HealthPayload {
+export function createHealthPayload(
+  version = process.env.RENDERER_VERSION ?? "development",
+): HealthPayload {
   return {
     service: "markdown-mint-renderer",
     status: "ok",

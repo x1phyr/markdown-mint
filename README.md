@@ -11,7 +11,7 @@
 
 MarkdownMint 是一个主题驱动的文档生成器。它不试图成为 Markdown 编辑器，而是专注于最后一公里：解析已经完成的 Markdown，应用专业排版主题，并稳定地导出最终成品。
 
-项目目前处于 **pre-alpha / v0.0.x**。公开 API、主题协议和目录结构在 v1.0 前可能调整。
+项目当前为 **v1.0.0-rc.1 候选版**，尚未宣告稳定版；公开 API、主题协议和目录结构在 v1.0.0 前仍可能调整。
 
 ## v1.0 目标
 
@@ -48,7 +48,7 @@ markdown-mint/
 
 要求：
 
-- Node.js 22.17.1 或兼容的 Node.js `>=22.12`
+- Node.js 22.22.2（通过 `.nvmrc` 与 workspace engine 固定）
 - pnpm 11.18.0（通过 Corepack）
 
 ```bash
@@ -59,16 +59,19 @@ pnpm dev
 
 常用命令：
 
-| 命令                | 用途                     |
-| ------------------- | ------------------------ |
-| `pnpm dev`          | 启动 Web 应用            |
-| `pnpm dev:renderer` | 启动本地渲染器健康端点   |
-| `pnpm build`        | 构建全部应用和包         |
-| `pnpm build:pages`  | 构建 GitHub Pages 静态站 |
-| `pnpm test`         | 运行单元测试             |
-| `pnpm typecheck`    | 运行全部 TypeScript 检查 |
-| `pnpm lint`         | 运行 ESLint              |
-| `pnpm check`        | 执行提交前完整质量门禁   |
+| 命令                                                     | 用途                               |
+| -------------------------------------------------------- | ---------------------------------- |
+| `pnpm dev`                                               | 启动 Web 应用                      |
+| `pnpm dev:renderer`                                      | 启动本地渲染器健康端点             |
+| `pnpm build`                                             | 构建全部应用和包                   |
+| `pnpm build:pages`                                       | 构建 GitHub Pages 静态站           |
+| `pnpm test`                                              | 运行单元测试                       |
+| `pnpm test:e2e:web`                                      | 运行已构建 Web 的浏览器 smoke      |
+| `pnpm --filter @markdown-mint/renderer smoke:pressure`   | 运行 20 页 P95 与 100 页压力 smoke |
+| `pnpm --filter @markdown-mint/renderer smoke:pdf:visual` | 校验固定 Chromium PDF 逐页视觉基线 |
+| `pnpm typecheck`                                         | 运行全部 TypeScript 检查           |
+| `pnpm lint`                                              | 运行 ESLint                        |
+| `pnpm check`                                             | 执行提交前完整质量门禁             |
 
 ## 项目文档
 
@@ -78,6 +81,16 @@ pnpm dev
 - [主题开发规范](docs/theme-authoring.md)
 - [开源软件工作流](docs/opensource-workflow.md)
 - [部署与运维](docs/deployment.md)
+- [格式参考](docs/format-reference.md)
+- [隐私说明](docs/privacy.md)
+- [服务条款（预发布草案）](docs/terms.md)
+- [迁移说明](docs/migrations.md)
+- [运维与发布演练](docs/operations-drill.md)
+- [故障排查](docs/troubleshooting.md)
+- [Beta 反馈模板](docs/beta-feedback.md)
+- [威胁模型](docs/threat-model.md)
+- [发布就绪清单](docs/release-readiness.md)
+- [第三方许可清单](docs/third-party-licenses.md)
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
 - [治理模型](GOVERNANCE.md)

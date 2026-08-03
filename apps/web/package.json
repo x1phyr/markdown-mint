@@ -1,6 +1,6 @@
 {
   "name": "@markdown-mint/web",
-  "version": "0.0.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
@@ -14,7 +14,9 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
-    "nuxt": "4.4.2",
+    "@markdown-mint/theme-runtime": "workspace:*",
+    "@markdown-mint/themes": "workspace:*",
+    "nuxt": "4.4.7",
     "vue": "3.5.40",
     "vue-router": "5.2.0"
   },

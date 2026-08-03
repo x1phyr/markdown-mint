@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -35,6 +36,190 @@ jobs:
 
       - name: Verify release source
         run: pnpm check && pnpm build
+
+      - name: Verify renderer storage recovery smoke
+        run: pnpm --filter @markdown-mint/renderer smoke:storage
+
+      - name: Verify renderer storage backup smoke
+        run: pnpm --filter @markdown-mint/renderer smoke:storage:backup
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level low
+
+      - name: Build renderer container
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          docker build --build-arg "MARKDOWN_MINT_VERSION=${version}" --file apps/renderer/Dockerfile --tag markdown-mint-renderer:release .
+
+      - name: Verify and record renderer runtime manifest
+        run: |
+          mkdir -p release
+          docker run --rm --entrypoint node markdown-mint-renderer:release apps/renderer/scripts/runtime-manifest.mjs --verify | tee release/renderer-runtime-manifest.json
+
+      - name: Verify renderer tests in restricted image
+        run: |
+          docker run --rm \
+            --network none \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
+            --tmpfs /exec-tmp:rw,exec,nosuid,nodev,size=64m \
+            --volume "$GITHUB_WORKSPACE/fixtures:/app/fixtures:ro" \
+            --env VIVLIOSTYLE_TEST_EXEC_DIR=/exec-tmp \
+            --entrypoint pnpm \
+            markdown-mint-renderer:release \
+            test
+
+      - name: Verify restricted renderer runtime
+        run: |
+          set -euo pipefail
+          cleanup() {
+            docker logs markdown-mint-renderer-release-security 2>&1 || true
+            docker rm -f markdown-mint-renderer-release-security >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker run --detach --name markdown-mint-renderer-release-security \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --memory=1g \
+            --cpus=2 \
+            --pids-limit=256 \
+            --publish 127.0.0.1:4310:4310 \
+            --env RENDERER_CORS_ORIGIN=http://127.0.0.1:3000 \
+            --env RENDERER_DATA_DIR=/tmp/renderer-data \
+            --env RENDERER_DOWNLOAD_SIGNING_SECRET=release-renderer-download-secret-32-chars \
+            --env RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS=300 \
+            markdown-mint-renderer:release
+          curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 1 --retry-connrefused http://127.0.0.1:4310/health
+          node scripts/renderer-api-smoke.mjs
+          test "$(docker inspect markdown-mint-renderer-release-security --format '{{.Config.User}}')" = "node"
+          test "$(docker inspect markdown-mint-renderer-release-security --format '{{.HostConfig.ReadonlyRootfs}}')" = "true"
+          docker inspect markdown-mint-renderer-release-security --format '{{json .HostConfig.CapDrop}}' | grep -F 'ALL'
+          test "$(docker inspect markdown-mint-renderer-release-security --format '{{json .HostConfig.Tmpfs}}')" = '{"/tmp":"rw,noexec,nosuid,nodev,size=512m"}'
+          tmpfs_bytes="$(docker exec markdown-mint-renderer-release-security node -e 'const stat = require("node:fs").statfsSync("/tmp"); process.stdout.write(String(stat.bsize * stat.blocks));')"
+          test "$tmpfs_bytes" -ge 536870912
+          test "$tmpfs_bytes" -le 537000000
+
+      - name: Scan renderer container
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          exit-code: "1"
+          format: table
+          ignore-unfixed: true
+          image-ref: markdown-mint-renderer:release
+          severity: CRITICAL,HIGH
+          vuln-type: os,library
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Publish renderer container
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/markdown-mint-renderer
+        run: |
+          set -euo pipefail
+          image="${IMAGE_NAME,,}:${GITHUB_REF_NAME}"
+          docker tag markdown-mint-renderer:release "$image"
+          docker push "$image"
+          printf '%s\n' "$image" > release/renderer-image.txt
+          docker image inspect "$image" --format '{{index .RepoDigests 0}}' > release/renderer-image-digest.txt
+
+      - name: Install pinned browser runtimes
+        run: pnpm --filter @markdown-mint/renderer exec playwright install --with-deps chromium firefox webkit
+
+      - name: Install pinned print fonts
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes fonts-liberation fonts-wqy-zenhei
+
+      - name: Verify print fonts
+        run: |
+          test "$(fc-match --format='%{family}' 'Liberation Sans')" = "Liberation Sans"
+          test "$(fc-match --format='%{family}' 'Liberation Serif')" = "Liberation Serif"
+          test "$(fc-match --format='%{family}' 'Liberation Mono')" = "Liberation Mono"
+          case "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" in
+            "WenQuanYi Zen Hei"*) ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Verify Web E2E in Chromium
+        env:
+          E2E_BROWSER: chromium
+        run: pnpm test:e2e:web
+
+      - name: Verify Web E2E in Firefox
+        env:
+          E2E_BROWSER: firefox
+        run: pnpm test:e2e:web
+
+      - name: Verify Web E2E in WebKit
+        env:
+          E2E_BROWSER: webkit
+        run: pnpm test:e2e:web
+
+      - name: Verify renderer pressure smoke
+        run: pnpm --filter @markdown-mint/renderer smoke:pressure
+
+      - name: Install PDF visual QA tools
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes poppler-utils
+
+      - name: Verify PDF visual baseline - Technical Mint
+        env:
+          PDF_SMOKE_OUTPUT: ${{ runner.temp }}/markdown-mint-technical-mint.pdf
+          PDF_SMOKE_THUMBNAIL_OUTPUT: ${{ runner.temp }}/markdown-mint-technical-mint-thumbnail.png
+          PDF_SMOKE_THEME: technical-mint
+          PDF_VISUAL_BASELINE: fixtures/p8-pdf-visual-baseline.json
+          PDF_VISUAL_INPUT: ${{ runner.temp }}/markdown-mint-technical-mint.pdf
+          PDF_VISUAL_OUTPUT_DIR: tmp/pdfs/renderer-pdf-visual-technical-mint
+        run: |
+          pnpm --filter @markdown-mint/renderer smoke:pdf
+          test -s "${PDF_SMOKE_THUMBNAIL_OUTPUT}"
+          pnpm --filter @markdown-mint/renderer smoke:pdf:visual
+
+      - name: Verify PDF visual baseline - Minimal Report
+        env:
+          PDF_SMOKE_OUTPUT: ${{ runner.temp }}/markdown-mint-minimal-report.pdf
+          PDF_SMOKE_THUMBNAIL_OUTPUT: ${{ runner.temp }}/markdown-mint-minimal-report-thumbnail.png
+          PDF_SMOKE_THEME: minimal-report
+          PDF_VISUAL_BASELINE: fixtures/p8-pdf-visual-baseline-minimal-report.json
+          PDF_VISUAL_INPUT: ${{ runner.temp }}/markdown-mint-minimal-report.pdf
+          PDF_VISUAL_OUTPUT_DIR: tmp/pdfs/renderer-pdf-visual-minimal-report
+        run: |
+          pnpm --filter @markdown-mint/renderer smoke:pdf
+          test -s "${PDF_SMOKE_THUMBNAIL_OUTPUT}"
+          pnpm --filter @markdown-mint/renderer smoke:pdf:visual
+
+      - name: Verify PDF visual baseline - Editorial Serif
+        env:
+          PDF_SMOKE_OUTPUT: ${{ runner.temp }}/markdown-mint-editorial-serif.pdf
+          PDF_SMOKE_THUMBNAIL_OUTPUT: ${{ runner.temp }}/markdown-mint-editorial-serif-thumbnail.png
+          PDF_SMOKE_THEME: editorial-serif
+          PDF_VISUAL_BASELINE: fixtures/p8-pdf-visual-baseline-editorial-serif.json
+          PDF_VISUAL_INPUT: ${{ runner.temp }}/markdown-mint-editorial-serif.pdf
+          PDF_VISUAL_OUTPUT_DIR: tmp/pdfs/renderer-pdf-visual-editorial-serif
+        run: |
+          pnpm --filter @markdown-mint/renderer smoke:pdf
+          test -s "${PDF_SMOKE_THUMBNAIL_OUTPUT}"
+          pnpm --filter @markdown-mint/renderer smoke:pdf:visual
+
+      - name: Verify complex theme fixture PDF
+        run: |
+          set -euo pipefail
+          for theme in technical-mint minimal-report editorial-serif; do
+            PDF_COMPLEX_SMOKE_THEME="$theme" \
+            PDF_COMPLEX_SMOKE_OUTPUT="${RUNNER_TEMP}/markdown-mint-${theme}-complex.pdf" \
+            PDF_COMPLEX_SMOKE_THUMBNAIL_OUTPUT="${RUNNER_TEMP}/markdown-mint-${theme}-complex-thumbnail.png" \
+              pnpm --filter @markdown-mint/renderer smoke:pdf:complex
+            test -s "${RUNNER_TEMP}/markdown-mint-${theme}-complex.pdf"
+            test -s "${RUNNER_TEMP}/markdown-mint-${theme}-complex-thumbnail.png"
+            PDF_VISUAL_BASELINE="fixtures/p8-pdf-complex-visual-baseline-${theme}.json" \
+            PDF_VISUAL_INPUT="${RUNNER_TEMP}/markdown-mint-${theme}-complex.pdf" \
+            PDF_VISUAL_OUTPUT_DIR="tmp/pdfs/renderer-pdf-complex-visual-${theme}" \
+              pnpm --filter @markdown-mint/renderer smoke:pdf:visual
+          done
 
       - name: Package source and checksums
         run: |

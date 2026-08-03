@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Audit dependencies
+        run: pnpm audit --audit-level low
+
       - name: Lint
         run: pnpm lint
 
@@ -43,6 +46,15 @@ jobs:
 
       - name: Test with coverage
         run: pnpm test:coverage
+
+      - name: Build workspaces for smoke scripts
+        run: pnpm --filter @markdown-mint/renderer... build
+
+      - name: Verify renderer storage recovery smoke
+        run: pnpm --filter @markdown-mint/renderer smoke:storage
+
+      - name: Verify renderer storage backup smoke
+        run: pnpm --filter @markdown-mint/renderer smoke:storage:backup
 
       - name: Check formatting
         run: pnpm format:check
@@ -71,3 +83,284 @@ jobs:
 
       - name: Build all workspaces
         run: pnpm build
+
+  renderer-pdf:
+    name: renderer-pdf-${{ matrix.theme }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - theme: technical-mint
+            baseline: fixtures/p8-pdf-visual-baseline.json
+          - theme: minimal-report
+            baseline: fixtures/p8-pdf-visual-baseline-minimal-report.json
+          - theme: editorial-serif
+            baseline: fixtures/p8-pdf-visual-baseline-editorial-serif.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.18.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build renderer and dependencies
+        run: pnpm --filter @markdown-mint/renderer... build
+
+      - name: Install pinned Chromium runtime
+        run: pnpm --filter @markdown-mint/renderer exec playwright install --with-deps chromium
+
+      - name: Install pinned print fonts
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes fonts-liberation fonts-wqy-zenhei
+
+      - name: Verify print fonts
+        run: |
+          test "$(fc-match --format='%{family}' 'Liberation Sans')" = "Liberation Sans"
+          test "$(fc-match --format='%{family}' 'Liberation Serif')" = "Liberation Serif"
+          test "$(fc-match --format='%{family}' 'Liberation Mono')" = "Liberation Mono"
+          case "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" in
+            "WenQuanYi Zen Hei"*) ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Generate PDF smoke artifact
+        env:
+          PDF_SMOKE_OUTPUT: ${{ github.workspace }}/artifacts/${{ matrix.theme }}.pdf
+          PDF_SMOKE_THUMBNAIL_OUTPUT: ${{ github.workspace }}/artifacts/${{ matrix.theme }}-thumbnail.png
+          PDF_SMOKE_THEME: ${{ matrix.theme }}
+        run: |
+          mkdir -p artifacts
+          pnpm --filter @markdown-mint/renderer smoke:pdf
+          test -s "artifacts/${{ matrix.theme }}-thumbnail.png"
+
+      - name: Install PDF visual QA tools
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes poppler-utils
+
+      - name: Verify PDF visual baseline
+        env:
+          PDF_VISUAL_BASELINE: ${{ matrix.baseline }}
+          PDF_VISUAL_INPUT: ${{ github.workspace }}/artifacts/${{ matrix.theme }}.pdf
+          PDF_VISUAL_OUTPUT_DIR: tmp/pdfs/renderer-pdf-visual-${{ matrix.theme }}
+        run: pnpm --filter @markdown-mint/renderer smoke:pdf:visual
+
+      - name: Upload PDF visual QA pages
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: renderer-pdf-visual-pages-${{ matrix.theme }}
+          path: tmp/pdfs/renderer-pdf-visual-${{ matrix.theme }}
+          if-no-files-found: ignore
+
+      - name: Upload PDF smoke artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: renderer-pdf-smoke-${{ matrix.theme }}
+          path: artifacts/${{ matrix.theme }}.*
+          if-no-files-found: error
+
+      - name: Generate complex theme fixture PDF
+        env:
+          PDF_COMPLEX_SMOKE_OUTPUT: ${{ github.workspace }}/artifacts/${{ matrix.theme }}-complex.pdf
+          PDF_COMPLEX_SMOKE_THUMBNAIL_OUTPUT: ${{ github.workspace }}/artifacts/${{ matrix.theme }}-complex-thumbnail.png
+          PDF_COMPLEX_SMOKE_THEME: ${{ matrix.theme }}
+        run: |
+          pnpm --filter @markdown-mint/renderer smoke:pdf:complex
+          test -s "artifacts/${{ matrix.theme }}-complex.pdf"
+          test -s "artifacts/${{ matrix.theme }}-complex-thumbnail.png"
+
+      - name: Verify complex fixture visual baseline
+        env:
+          PDF_VISUAL_BASELINE: fixtures/p8-pdf-complex-visual-baseline-${{ matrix.theme }}.json
+          PDF_VISUAL_INPUT: ${{ github.workspace }}/artifacts/${{ matrix.theme }}-complex.pdf
+          PDF_VISUAL_OUTPUT_DIR: tmp/pdfs/renderer-pdf-complex-visual-${{ matrix.theme }}
+        run: pnpm --filter @markdown-mint/renderer smoke:pdf:visual
+
+      - name: Upload complex visual QA pages
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: renderer-pdf-complex-visual-pages-${{ matrix.theme }}
+          path: tmp/pdfs/renderer-pdf-complex-visual-${{ matrix.theme }}
+          if-no-files-found: ignore
+
+      - name: Upload complex fixture artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: renderer-pdf-complex-${{ matrix.theme }}
+          path: artifacts/${{ matrix.theme }}-complex.*
+          if-no-files-found: error
+
+  renderer-container:
+    name: renderer-container-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build renderer container
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          docker build --build-arg "MARKDOWN_MINT_VERSION=${version}" --file apps/renderer/Dockerfile --tag markdown-mint-renderer:ci .
+
+      - name: Verify renderer runtime manifest
+        run: docker run --rm --entrypoint node markdown-mint-renderer:ci apps/renderer/scripts/runtime-manifest.mjs --verify
+
+      - name: Verify renderer tests in restricted image
+        run: |
+          docker run --rm \
+            --network none \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
+            --tmpfs /exec-tmp:rw,exec,nosuid,nodev,size=64m \
+            --volume "$GITHUB_WORKSPACE/fixtures:/app/fixtures:ro" \
+            --env VIVLIOSTYLE_TEST_EXEC_DIR=/exec-tmp \
+            --entrypoint pnpm \
+            markdown-mint-renderer:ci \
+            test
+
+      - name: Verify restricted renderer runtime
+        run: |
+          set -euo pipefail
+          cleanup() {
+            docker logs markdown-mint-renderer-security 2>&1 || true
+            docker rm -f markdown-mint-renderer-security >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker run --detach --name markdown-mint-renderer-security \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --memory=1g \
+            --cpus=2 \
+            --pids-limit=256 \
+            --publish 127.0.0.1:4310:4310 \
+            --env RENDERER_CORS_ORIGIN=http://127.0.0.1:3000 \
+            --env RENDERER_DATA_DIR=/tmp/renderer-data \
+            --env RENDERER_DOWNLOAD_SIGNING_SECRET=ci-renderer-download-secret-32-characters-long \
+            --env RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS=300 \
+            markdown-mint-renderer:ci
+          curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 1 --retry-connrefused http://127.0.0.1:4310/health
+          node scripts/renderer-api-smoke.mjs
+          test "$(docker inspect markdown-mint-renderer-security --format '{{.Config.User}}')" = "node"
+          test "$(docker inspect markdown-mint-renderer-security --format '{{.HostConfig.ReadonlyRootfs}}')" = "true"
+          docker inspect markdown-mint-renderer-security --format '{{json .HostConfig.CapDrop}}' | grep -F 'ALL'
+          test "$(docker inspect markdown-mint-renderer-security --format '{{json .HostConfig.Tmpfs}}')" = '{"/tmp":"rw,noexec,nosuid,nodev,size=512m"}'
+          tmpfs_bytes="$(docker exec markdown-mint-renderer-security node -e 'const stat = require("node:fs").statfsSync("/tmp"); process.stdout.write(String(stat.bsize * stat.blocks));')"
+          test "$tmpfs_bytes" -ge 536870912
+          test "$tmpfs_bytes" -le 537000000
+
+      - name: Scan renderer container
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          exit-code: "1"
+          format: table
+          ignore-unfixed: true
+          image-ref: markdown-mint-renderer:ci
+          severity: CRITICAL,HIGH
+          vuln-type: os,library
+
+  renderer-pressure:
+    name: renderer-pressure
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.18.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build renderer and dependencies
+        run: pnpm --filter @markdown-mint/renderer... build
+
+      - name: Install pinned Chromium runtime
+        run: pnpm --filter @markdown-mint/renderer exec playwright install --with-deps chromium
+
+      - name: Install pinned print fonts
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes fonts-liberation fonts-wqy-zenhei
+
+      - name: Verify print fonts
+        run: |
+          test "$(fc-match --format='%{family}' 'Liberation Sans')" = "Liberation Sans"
+          test "$(fc-match --format='%{family}' 'Liberation Serif')" = "Liberation Serif"
+          test "$(fc-match --format='%{family}' 'Liberation Mono')" = "Liberation Mono"
+          case "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" in
+            "WenQuanYi Zen Hei"*) ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Run 20-page P95 and 100-page pressure smoke
+        run: pnpm --filter @markdown-mint/renderer smoke:pressure
+
+  web-e2e:
+    name: web-e2e-${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.18.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Web and dependencies
+        run: pnpm --filter @markdown-mint/web... build
+
+      - name: Build renderer and dependencies for export E2E
+        run: pnpm --filter @markdown-mint/renderer... build
+
+      - name: Install pinned browser runtimes
+        run: |
+          browsers=chromium
+          if [ "${{ matrix.browser }}" != "chromium" ]; then
+            browsers="$browsers ${{ matrix.browser }}"
+          fi
+          pnpm --filter @markdown-mint/renderer exec playwright install --with-deps $browsers
+
+      - name: Run Web E2E smoke
+        env:
+          E2E_BROWSER: ${{ matrix.browser }}
+        run: pnpm test:e2e:web

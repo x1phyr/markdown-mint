@@ -1,0 +1,48 @@
+{
+  "dpi": 144,
+  "pageCount": 10,
+  "pageSize": "594.96 x 841.92 pts (A4)",
+  "pages": [
+    {
+      "file": "page-01.png",
+      "sha256": "1644821d868832dcdc5b061cdd0a1ebf551489a231bcc104075b2893044fe203"
+    },
+    {
+      "file": "page-02.png",
+      "sha256": "11e6a15e87214c9b97744c547beae3a820debe13ba0797bd5f47d4543d6f1c3c"
+    },
+    {
+      "file": "page-03.png",
+      "sha256": "25546b61af7378b8be046247450ef3c0b068e36ebb34416e2907e1461a79ac8e"
+    },
+    {
+      "file": "page-04.png",
+      "sha256": "d70e873aa23501bbe3c2313661a52eee24fd4ab96fee1b3d2fe4cf8a16ec94e0"
+    },
+    {
+      "file": "page-05.png",
+      "sha256": "622ae8e9619c54a949153bce879aef3e94a7542d9182b1f44cc664f5549129d8"
+    },
+    {
+      "file": "page-06.png",
+      "sha256": "48ec07252fe60817b7147d7518bc393dff8a5f56a828f5079a359417b093fff0"
+    },
+    {
+      "file": "page-07.png",
+      "sha256": "9f8996dc27c1d90f4d3fa2b04f2e75e843f2718cf5ee0b4f22f2f450f04c7413"
+    },
+    {
+      "file": "page-08.png",
+      "sha256": "bbbdb6a2a4af60425af49fb7fc7ceee45c38dd32e352db0e5c5750562aa14397"
+    },
+    {
+      "file": "page-09.png",
+      "sha256": "3c2a952b2ca9c9625cb4236c751a3b19466664bea5843e5bb28c2ae0a9bc518f"
+    },
+    {
+      "file": "page-10.png",
+      "sha256": "6bd7937324db8d43301c496f1c015d57117386bcaeaf40daad884ba4551f0d68"
+    }
+  ],
+  "renderer": "playwright-chromium"
+}

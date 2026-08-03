@@ -1,9 +1,12 @@
 {
   "name": "@markdown-mint/theme-sdk",
-  "version": "0.0.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
+  "bin": {
+    "markdown-mint-theme-check": "dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -17,6 +20,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
+    "theme:check": "node dist/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }
