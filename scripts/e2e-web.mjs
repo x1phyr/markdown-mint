@@ -150,9 +150,12 @@ async function run() {
 
     await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "载入示例" }).click();
-    await page.getByRole("button", { name: "Continue" }).first().click();
-    await page.getByRole("button", { name: "Continue" }).last().click();
-    await page.getByRole("button", { name: "Generate artifact" }).click();
+    if ((await page.locator("html").getAttribute("lang")) !== "zh-CN") {
+      throw new Error("Loading the sample changed the UI language from Chinese.");
+    }
+    await page.getByRole("button", { name: "下一步" }).first().click();
+    await page.getByRole("button", { name: "下一步" }).last().click();
+    await page.getByRole("button", { name: "生成" }).click();
     await page
       .locator("#result-title")
       .waitFor({ state: "visible", timeout: exportResultTimeoutMs });
@@ -160,7 +163,7 @@ async function run() {
       throw new Error("Export result did not expose exactly one artifact card.");
     }
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download" }).click();
+    await page.getByRole("button", { name: "下载产物" }).click();
     const download = await downloadPromise;
     if (!/\.pdf$/iu.test(download.suggestedFilename())) {
       throw new Error(`Expected a PDF download, received ${download.suggestedFilename()}.`);

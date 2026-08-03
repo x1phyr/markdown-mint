@@ -366,7 +366,6 @@ function loadSample(): void {
   documentForm.title = "MarkdownMint sample document";
   documentForm.subtitle = "A short export workflow demo";
   documentForm.author = "MarkdownMint";
-  locale.value = "en";
 }
 
 function openDraftDatabase(): Promise<IDBDatabase> {
