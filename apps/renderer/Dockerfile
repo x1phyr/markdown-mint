@@ -44,7 +44,9 @@ COPY packages packages
 
 RUN pnpm --filter @markdown-mint/renderer... build
 
-RUN mkdir -p /var/lib/markdown-mint && chown -R node:node /var/lib/markdown-mint
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+  && mkdir -p /var/lib/markdown-mint \
+  && chown -R node:node /var/lib/markdown-mint
 
 USER node
 EXPOSE 4310
