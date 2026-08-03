@@ -8,8 +8,22 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "dev": "tsx watch src/server.ts",
+    "smoke:pdf:complex": "tsx scripts/pdf-complex-smoke.ts",
+    "smoke:pdf": "tsx scripts/pdf-smoke.ts",
+    "smoke:pdf:visual": "tsx scripts/pdf-visual-smoke.ts",
+    "smoke:pressure": "tsx scripts/pressure-smoke.ts",
+    "smoke:storage:backup": "tsx scripts/storage-backup-smoke.ts",
+    "smoke:storage": "tsx scripts/storage-recovery-smoke.ts",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@markdown-mint/compiler": "workspace:*",
+    "@markdown-mint/document-schema": "workspace:*",
+    "@markdown-mint/html-exporter": "workspace:*",
+    "@markdown-mint/theme-runtime": "workspace:*",
+    "@markdown-mint/themes": "workspace:*",
+    "playwright": "1.62.1"
   },
   "devDependencies": {
     "tsx": "4.23.1"

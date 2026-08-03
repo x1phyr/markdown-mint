@@ -31,7 +31,7 @@ Markdown + Assets + ExportRequest
        standalone HTML exporter          paged-media renderer
                                                   │
                                                   ▼
-                                                 PDF
+                                       PDF + first-page PNG preview
 ```
 
 Shiki、KaTeX 和 Mermaid 在语义 HTML 形成过程中转成静态 HTML/CSS/SVG。最终文档不执行用户脚本。
@@ -48,14 +48,27 @@ Shiki、KaTeX 和 Mermaid 在语义 HTML 形成过程中转成静态 HTML/CSS/SV
 ### Renderer API
 
 - 验证请求、创建任务、管理生命周期和返回产物；
+- 可选地将任务源数据、幂等键、终态元数据和产物写入同一文件存储卷，并在单实例重启后恢复；
 - 为每个任务创建独立临时工作区；
 - 负责资源抓取策略、大小限制、超时和清理；
 - 调用编译器、主题运行时、HTML 导出器和 PDF 后端；
+- HTML 产物把已通过校验的本地图片内联为 `data:` URL，PDF 与外部分页后端复用同一内联逻辑；
 - 不允许渲染进程访问应用凭据、宿主文件系统或任意内网地址。
 
 ### PDF 后端
 
-v1.0 的首选分页后端为 Vivliostyle CLI，Chromium/Playwright 只作为缩略图、E2E 和有明确限制的降级路径。浏览器和字体版本必须固定在容器镜像中。
+当前默认生产路径是固定版本的 Playwright Chromium：它消费与 HTML 相同的语义文档和主题 CSS，
+使用 `@page`、纸张方向和边距生成 PDF，并在任务元数据中返回页数。容器与 CI 明确安装
+`fonts-liberation` 和 `fonts-wqy-zenhei`，主题使用对应的 Liberation/WenQuanYi 字体栈；浏览器、字体
+和系统包版本必须固定并记录在镜像构建审计中。渲染结束后，适配器还在固定 A4 CSS viewport 中截取同一打印页面上下文的首页 PNG，
+作为结果页渐进式预览；它不是跨引擎等价性证据。
+
+仓库同时提供 `createVivliostylePdfRenderer` 外部进程适配器。通过
+`PDF_BACKEND=vivliostyle` 和经过审计的 `VIVLIOSTYLE_BIN` 显式启用时，它把同一份自包含 HTML
+交给 `vivliostyle build --single-doc`，并校验退出码、PDF 页数和非空产物；Vivliostyle 的页眉、页脚
+和页码使用 CSS paged-media margin boxes。适配器不会把 AGPL CLI 打进 Apache-2.0 依赖树，且默认仍为
+Chromium。Vivliostyle 运行时、字体和跨引擎视觉基线完成法务与人工验收前，不把该路径标记为生产默认，
+也不把 Chromium smoke 结果当作跨引擎排版承诺。
 
 ## 包职责
 
@@ -107,11 +120,15 @@ v1.0 控制措施：
 - 日志不记录文档正文、令牌、远程 URL 查询参数或产物内容；
 - 产物采用短期签名下载地址并按保留期删除。
 
+`RENDERER_DATA_DIR` 未配置时任务和产物只保存在进程内存中，适合本地开发；生产使用文件存储时，
+`jobs/`、`artifacts/` 和 `thumbnails/` 必须作为一个备份单元处理。该适配器解决单实例崩溃恢复和
+幂等重放，不替代跨实例队列、数据库事务、卷加密、密钥托管或备份系统。
+
 在引入远程资源、用户字体或账户系统前必须更新威胁模型。
 
 ## 可复现性与版本
 
-- Node、pnpm、Chromium、Vivliostyle、字体和系统包固定版本；
+- Node、pnpm、Chromium、Vivliostyle（若启用）、字体和系统包固定版本；
 - 主题 Manifest 独立版本，导出结果记录主题版本；
 - 编译器对语义结构的破坏性变化需要 ADR 和迁移说明；
 - fixture PDF 以结构检查、像素 diff 和人工抽样共同验收；

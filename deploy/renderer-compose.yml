@@ -1,0 +1,43 @@
+services:
+  renderer:
+    build:
+      context: ..
+      dockerfile: apps/renderer/Dockerfile
+    environment:
+      HOST: 0.0.0.0
+      RENDERER_CORS_ORIGIN: ${RENDERER_CORS_ORIGIN:?set an explicit renderer origin}
+      RENDERER_DOWNLOAD_SIGNING_SECRET: ${RENDERER_DOWNLOAD_SIGNING_SECRET:?set a random download signing secret}
+      RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS: ${RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS:-300}
+      RENDERER_DATA_DIR: /var/lib/markdown-mint
+      RENDERER_RETENTION_MS: ${RENDERER_RETENTION_MS:-3600000}
+      RENDERER_RETENTION_SWEEP_MS: ${RENDERER_RETENTION_SWEEP_MS:-60000}
+    ports:
+      - "127.0.0.1:4310:4310"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m
+    volumes:
+      - renderer-data:/var/lib/markdown-mint
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 2.0
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4310/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  renderer-data:

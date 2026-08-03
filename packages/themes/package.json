@@ -21,5 +21,9 @@
   },
   "dependencies": {
     "@markdown-mint/theme-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@markdown-mint/compiler": "workspace:*",
+    "@markdown-mint/theme-runtime": "workspace:*"
   }
 }

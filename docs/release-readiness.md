@@ -1,0 +1,46 @@
+# Release readiness
+
+这份清单用于从 pre-alpha 走向 `v0.9.0` / `v1.0.0-rc.n`。它记录可验证的门禁，也记录尚未
+满足的发布阻塞项，不把测试通过误写成生产就绪。
+
+## 当前已验证
+
+- `CompiledDocument` v1、`ExportRequest` schema、Theme Manifest v1 和稳定错误码边界已存在；
+- GFM、资源安全、Shiki、KaTeX、Mermaid、三套主题、Web 三步流程和 30 份兼容 fixture 有自动化回归；
+- Node.js 运行时已统一为 22.22.2（`.nvmrc`、根 workspace engine 和 Renderer 镜像基 digest）；在该 Linux 运行时，完整 `pnpm check`（lint、全部 workspace `typecheck`、18 个测试文件的 116 个测试和格式检查）、`pnpm test:coverage`（17 个测试文件的 113 个测试及覆盖率门槛）和 `pnpm build` 均通过；
+- HTML 产物有封面、目录、页眉/页脚、页码开关、大小和 sha256 元数据；
+- HTML 导出已验证将合规的本地图片内联为 data URL，下载后的单文件不依赖 `assets/` 目录；
+- PDF 默认使用锁定版本的 Playwright Chromium 分页适配器，不再静默使用 fallback；适配器按请求的纸张、方向和边距生成 PDF，并返回页数；
+- 在生产等价 Linux 镜像中，16 个长章节的真实 Chromium smoke 生成 10 页 A4 PDF，`pdfinfo` 与服务元数据的页数一致；页眉、页脚和 `Page N / totalPages` 已通过 PNG 视觉检查；
+- 固定 144 DPI 的三套首发主题 Chromium visual baseline 已纳入 `smoke:pdf:visual`（三套各 10 页），基线由生产等价 Linux 镜像生成；arm64 与 amd64 镜像的逐页图像哈希一致，连续真实渲染也一致；
+- PDF 成功产物现在包含首页 PNG 缩略图元数据，并通过 `/v1/exports/:id/thumbnail` 提供；Web 结果页和主题详情页已接入渐进式预览，缩略图与任务保留期一起清理；
+- Renderer Docker 镜像已在本地真实构建并启动验收；容器健康检查通过，回环 API 已完成真实 Chromium PDF 与首页 PNG 缩略图导出下载验证；
+- Renderer 压力 smoke 已在固定 Chromium 上通过：amd64 容器 5 次 20 页基准 P95 为 1.56s，100 页 fixture 生成 100 页并成功完成（默认 30s 超时）；CI 与 Release workflow 已接入同一门禁；
+- `smoke:pdf:complex` 已用统一主题验收样张在三套首发主题上生成真实 8 页 PDF 和首页 PNG，并接入 CI/Release；三套对应的固定 Linux 144 DPI 逐页视觉基线也已接入，证据明确区分自动化通过与人工打印签字；
+- Web 生产构建已在 Chromium、Firefox、WebKit 三个 Playwright runtime 中完成首页、主题列表、主题详情、移动视口、主 landmark、重复 ID、浏览器错误和 axe WCAG 自动审计 smoke；
+- Renderer 有幂等、取消、超时、重试、保留期、超限请求和 CORS 预检测试。
+- Renderer 任务有独立临时工作区、`traceId`、`x-request-id` 和 JSON 阶段日志；Vivliostyle 外部 CLI 适配器有退出码、页数、空产物和工作区清理契约测试。
+- Renderer 在配置 `RENDERER_DOWNLOAD_SIGNING_SECRET` 时为 PDF/HTML 与首页缩略图返回短期签名下载地址，并对缺失、篡改和过期签名拒绝服务；Web 已消费这两个链接。
+- Renderer Server 已自动执行保留期 sweep；短保留期集成测试验证 PDF、HTML/产物元数据和首页缩略图一起进入 `expired`，不能继续下载。
+- CI/Release 容器门禁已包含真实 API PDF/缩略图导出、签名下载拒绝和 512 MiB `/tmp` 容量上限检查，不再只检查 `/health`。
+- CI/Release 还会在生产镜像内以无网络、只读 rootfs、`/tmp` `noexec`、fixtures 只读挂载和独立可执行临时目录运行 Renderer 单元测试；
+- `RENDERER_DATA_DIR` 文件存储已覆盖提交落盘、原子产物写入、重启恢复、幂等恢复、损坏产物 fail-closed
+  和保留期删除契约；Compose 使用独立持久卷，`storage-backup.mjs` 已覆盖清单哈希、归档验证、恢复
+  前非空目标保护和软链接拒绝，运维手册包含整卷备份/恢复步骤。
+- Renderer 镜像现在生成并自校验 runtime manifest，记录 Playwright/Chromium revision、可执行文件 SHA256、
+  字体包版本和第三方 notices；Release 会将该清单作为校验产物保留。
+- `docs/release-signoff.md` 已提供 RC 的自动化证据、跨平台打印、安全/隐私/无障碍/运维负责人签字和
+  72 小时观察窗口记录模板。
+- 服务条款预发布草案、迁移说明和运维/发布演练手册已入库；持久卷加密、备份 ACL、跨实例协调和签名
+  密钥托管仍需部署负责人完成。
+
+## 发布阻塞项
+
+- 当前已具备固定 Chromium smoke 的视觉 diff、明确的 Linux 字体镜像、首页 PNG 预览、扩充后的复杂主题 fixture、复杂 fixture 的独立视觉基线和 Vivliostyle 外部 CLI 适配器，但 Vivliostyle 运行时等价性和跨平台人工打印验收尚未完成；
+- fallback 仅可通过测试或显式注入启用，不能作为生产降级路径；
+- GitHub hosted CI 的 Trivy 容器扫描、依赖审计、CodeQL、浏览器矩阵和 72 小时 RC 观察仍需在发布流水线中完成；本地 `pnpm audit`、三浏览器 E2E/axe 和容器运行时 smoke 已完成；
+- Chromium runtime 的实际 revision/sha256、镜像内第三方 notices、字体包版本现在已有机器校验清单，但再分发许可和最终发布负责人签字仍未完成；
+- 生产产物保留参数、持久卷加密与备份/回滚演练、签名密钥托管和跨实例部署策略需要部署环境参与；
+  `RENDERER_DATA_DIR` 文件存储是单实例恢复契约，不应直接当作高可用任务队列或托管数据库。
+
+在以上项目关闭前，不应创建 `v1.0.0` 标签，也不应把 fallback PDF 样张标记为最终排版样张。

@@ -1,0 +1,11 @@
+.git
+.github
+.nuxt
+.output
+coverage
+node_modules
+dist
+fixtures
+tmp
+workspaces
+artifacts

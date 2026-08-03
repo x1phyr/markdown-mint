@@ -18,6 +18,17 @@ packages/themes/<theme-id>/
 └── previews/
 ```
 
+官方主题还应在 `packages/themes/src/details.ts` 中声明适用场景、内容覆盖、设计原则和统一验收
+fixture。当前首发主题共用 `fixtures/p5-themes.md`，由编译器和主题运行时生成 HTML 预览；PDF
+样例必须来自同一份 fixture 和渲染器适配器，不能用手工截图替代。
+
+Manifest 必须声明 `schemaVersion: 1`、`compatibility.compiledDocument: 1`、支持的 `outputs`、完整能力集合，以及所有允许覆盖的 `--mm-*` token。主题 SDK 会在 `defineTheme()` 时校验这些字段；JSON manifest 也可以使用作者 CLI 检查：
+
+```bash
+pnpm --filter @markdown-mint/theme-sdk build
+node packages/theme-sdk/dist/cli.js path/to/manifest.json
+```
+
 ## 分层职责
 
 - `manifest.ts`：身份、版本、分类、能力、默认值、支持的输出和兼容范围；
@@ -26,6 +37,8 @@ packages/themes/<theme-id>/
 - `screen.css`：独立 HTML 和主题样张的屏幕表现；
 - `print.css`：分页媒体、页眉页脚、页码、孤行寡行和跨页策略；
 - `cover.css`：封面与章节首页的独立布局。
+
+运行时按 `tokens → content → cover → screen → print` 装配 CSS。`cover.css` 可以省略，但其它四层和 `.mm-document` 语义根必须存在；CSS 不得包含 `@import`、外部 `url()`、脚本或未在 Manifest 中声明的 token。
 
 ## 允许用户覆盖的变量
 
@@ -38,6 +51,8 @@ v1.0 只开放经过主题声明的变量：
 - 封面、目录、标题编号、页眉页脚和页码开关。
 
 不允许任意 CSS、任意字体 URL、任意 HTML 模板和 JavaScript。
+
+运行时只接受 Manifest 中 `userOverridable: true` 的 token，并按 `color`、`length`、`number` 或字体类型校验值。未知 token、锁定 token 和包含 URL/脚本的值都会变成构建诊断。
 
 ## 必测内容
 
@@ -65,6 +80,7 @@ v1.0 只开放经过主题声明的变量：
 - 没有未消费或未声明的 token；
 - 所有合同、视觉和分页测试通过；
 - PDF 和 HTML 的核心视觉语言一致；
-- 中文字体具备明确许可和所需字形；
+- 打印运行时使用 CI 与 Renderer 镜像明确安装的 `Liberation Sans/Serif/Mono` 与 `WenQuanYi Zen Hei` 字体栈；中文字体具备明确许可和所需字形；
 - 页面在打印和屏幕环境均达到对比度要求；
 - 主题详情、能力说明、样例 PDF 和 HTML 已生成。
+- `fixtures/p5-themes.md` 通过三套主题的结构合同，且预览 HTML 由真实编译结果生成。
