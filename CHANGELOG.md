@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+暂无未发布变更。
+
+## [1.0.0-rc.1] - 2026-08-03
+
 ### Added
 
 - Node.js 运行时统一固定为 22.22.2，并同步 `.nvmrc`、根 workspace engine 与 Renderer 容器基镜像，避免低于锁定依赖 engine 要求的运行时不兼容。

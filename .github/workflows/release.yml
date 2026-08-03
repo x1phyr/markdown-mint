@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -46,7 +47,9 @@ jobs:
         run: pnpm audit --audit-level low
 
       - name: Build renderer container
-        run: docker build --file apps/renderer/Dockerfile --tag markdown-mint-renderer:release .
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          docker build --build-arg "MARKDOWN_MINT_VERSION=${version}" --file apps/renderer/Dockerfile --tag markdown-mint-renderer:release .
 
       - name: Verify and record renderer runtime manifest
         run: |
@@ -107,6 +110,24 @@ jobs:
           image-ref: markdown-mint-renderer:release
           severity: CRITICAL,HIGH
           vuln-type: os,library
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Publish renderer container
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/markdown-mint-renderer
+        run: |
+          set -euo pipefail
+          image="${IMAGE_NAME,,}:${GITHUB_REF_NAME}"
+          docker tag markdown-mint-renderer:release "$image"
+          docker push "$image"
+          printf '%s\n' "$image" > release/renderer-image.txt
+          docker image inspect "$image" --format '{{index .RepoDigests 0}}' > release/renderer-image-digest.txt
 
       - name: Install pinned browser runtimes
         run: pnpm --filter @markdown-mint/renderer exec playwright install --with-deps chromium firefox webkit

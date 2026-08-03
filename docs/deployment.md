@@ -4,6 +4,9 @@ MarkdownMint 的展示站通过 GitHub Actions 部署到 GitHub Pages。`main` �
 
 当前生产地址：<https://x1phyr.github.io/markdown-mint/>
 
+当前候选 Renderer 镜像：`ghcr.io/x1phyr/markdown-mint-renderer:v1.0.0-rc.1`。正式部署时应把
+`RENDERER_IMAGE` 固定为 Release 资产中记录的完整 digest，而不是跟随可变 tag。
+
 ## 部署链路
 
 1. Pull Request 运行 `CI / quality` 和 `CI / build`；
@@ -155,6 +158,19 @@ docker run --rm \
 文件系统、仅给 `/tmp` 和数据卷可写层、`cap_drop: ALL`、`no-new-privileges`、非 root `node` 用户、
 进程/内存/CPU 上限、显式 CORS 来源和必需的下载签名密钥。不要为了让 Chromium 工作而去掉这些限制；
 必要的浏览器临时文件必须写入 `/tmp`。
+
+候选镜像部署前先注入生产环境变量，再执行：
+
+```bash
+export RENDERER_IMAGE=ghcr.io/x1phyr/markdown-mint-renderer@sha256:<release-digest>
+export RENDERER_CORS_ORIGIN=https://<your-web-origin>
+export RENDERER_DOWNLOAD_SIGNING_SECRET='<至少 32 个随机字符>'
+docker compose --file deploy/renderer-compose.yml pull
+docker compose --file deploy/renderer-compose.yml up --detach
+```
+
+本仓库没有托管 Renderer 的生产主机；上面的命令是部署方在具备持久卷、TLS 反向代理、密钥托管和
+备份权限的主机上执行的最后一步。
 
 ```bash
 docker build --file apps/renderer/Dockerfile --tag markdown-mint-renderer:ci .

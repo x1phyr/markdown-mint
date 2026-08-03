@@ -2,7 +2,10 @@ FROM node:22.22.2-bookworm-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc
 
 WORKDIR /app
 
+ARG MARKDOWN_MINT_VERSION=development
+
 ENV COREPACK_HOME=/usr/local/share/corepack
+ENV RENDERER_VERSION=${MARKDOWN_MINT_VERSION}
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/renderer/package.json apps/renderer/package.json

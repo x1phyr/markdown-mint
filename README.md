@@ -11,7 +11,7 @@
 
 MarkdownMint 是一个主题驱动的文档生成器。它不试图成为 Markdown 编辑器，而是专注于最后一公里：解析已经完成的 Markdown，应用专业排版主题，并稳定地导出最终成品。
 
-项目目前处于 **pre-alpha / v0.0.x**。公开 API、主题协议和目录结构在 v1.0 前可能调整。
+项目当前为 **v1.0.0-rc.1 候选版**，尚未宣告稳定版；公开 API、主题协议和目录结构在 v1.0.0 前仍可能调整。
 
 ## v1.0 目标
 
@@ -48,7 +48,7 @@ markdown-mint/
 
 要求：
 
-- Node.js 22.17.1 或兼容的 Node.js `>=22.12`
+- Node.js 22.22.2（通过 `.nvmrc` 与 workspace engine 固定）
 - pnpm 11.18.0（通过 Corepack）
 
 ```bash
