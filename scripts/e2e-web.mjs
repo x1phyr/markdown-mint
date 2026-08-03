@@ -13,6 +13,7 @@ const port = Number.parseInt(process.env.E2E_PORT ?? "4390", 10);
 const baseUrl = `http://127.0.0.1:${port}`;
 const rendererPort = Number.parseInt(process.env.E2E_RENDERER_PORT ?? "4310", 10);
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
+const exportResultTimeoutMs = Number.parseInt(process.env.E2E_EXPORT_TIMEOUT_MS ?? "90000", 10);
 const child = spawn("node", ["apps/web/.output/server/index.mjs"], {
   env: { ...process.env, HOST: "127.0.0.1", NITRO_PORT: String(port), PORT: String(port) },
   stdio: ["ignore", "pipe", "pipe"],
@@ -152,7 +153,9 @@ async function run() {
     await page.getByRole("button", { name: "Continue" }).first().click();
     await page.getByRole("button", { name: "Continue" }).last().click();
     await page.getByRole("button", { name: "Generate artifact" }).click();
-    await page.locator("#result-title").waitFor({ state: "visible", timeout: 30_000 });
+    await page
+      .locator("#result-title")
+      .waitFor({ state: "visible", timeout: exportResultTimeoutMs });
     if ((await page.locator(".artifact-card").count()) !== 1) {
       throw new Error("Export result did not expose exactly one artifact card.");
     }

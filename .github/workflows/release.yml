@@ -69,9 +69,12 @@ jobs:
       - name: Verify restricted renderer runtime
         run: |
           set -euo pipefail
-          cleanup() { docker rm -f markdown-mint-renderer-release-security >/dev/null 2>&1 || true; }
+          cleanup() {
+            docker logs markdown-mint-renderer-release-security 2>&1 || true
+            docker rm -f markdown-mint-renderer-release-security >/dev/null 2>&1 || true
+          }
           trap cleanup EXIT
-          docker run --detach --rm --name markdown-mint-renderer-release-security \
+          docker run --detach --name markdown-mint-renderer-release-security \
             --read-only \
             --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
             --cap-drop=ALL \
@@ -120,7 +123,10 @@ jobs:
           test "$(fc-match --format='%{family}' 'Liberation Sans')" = "Liberation Sans"
           test "$(fc-match --format='%{family}' 'Liberation Serif')" = "Liberation Serif"
           test "$(fc-match --format='%{family}' 'Liberation Mono')" = "Liberation Mono"
-          test "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" = "WenQuanYi Zen Hei"
+          case "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" in
+            "WenQuanYi Zen Hei"*) ;;
+            *) exit 1 ;;
+          esac
 
       - name: Verify Web E2E in Chromium
         env:

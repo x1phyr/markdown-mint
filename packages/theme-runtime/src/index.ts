@@ -15,10 +15,39 @@ function cssIssue(path: string, rule: string, message: string): ThemeValidationI
   return { message, path, rule };
 }
 
+const CSS_TOKEN_PREFIX = "--mm-";
+
+function isCssTokenNameChar(code: number): boolean {
+  return (
+    code === 0x2d ||
+    (code >= 0x30 && code <= 0x39) ||
+    (code >= 0x41 && code <= 0x5a) ||
+    (code >= 0x61 && code <= 0x7a)
+  );
+}
+
+function isCssWhitespace(code: number): boolean {
+  return code === 0x09 || code === 0x0a || code === 0x0c || code === 0x0d || code === 0x20;
+}
+
 function findTokenNames(css: string): string[] {
-  return [...css.matchAll(/(--mm-[a-z0-9-]+)\s*:/giu)]
-    .map((match) => match[1])
-    .filter((name): name is string => Boolean(name));
+  const names: string[] = [];
+  let searchFrom = 0;
+  while (searchFrom < css.length) {
+    const start = css.indexOf(CSS_TOKEN_PREFIX, searchFrom);
+    if (start < 0) break;
+
+    let end = start + CSS_TOKEN_PREFIX.length;
+    while (end < css.length && isCssTokenNameChar(css.charCodeAt(end))) end += 1;
+
+    if (end > start + CSS_TOKEN_PREFIX.length) {
+      let cursor = end;
+      while (cursor < css.length && isCssWhitespace(css.charCodeAt(cursor))) cursor += 1;
+      if (css[cursor] === ":") names.push(css.slice(start, end));
+    }
+    searchFrom = Math.max(end, start + CSS_TOKEN_PREFIX.length);
+  }
+  return names;
 }
 
 function findCssHazards(css: string): string[] {

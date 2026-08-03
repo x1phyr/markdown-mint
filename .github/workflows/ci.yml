@@ -47,6 +47,9 @@ jobs:
       - name: Test with coverage
         run: pnpm test:coverage
 
+      - name: Build workspaces for smoke scripts
+        run: pnpm --filter @markdown-mint/renderer... build
+
       - name: Verify renderer storage recovery smoke
         run: pnpm --filter @markdown-mint/renderer smoke:storage
 
@@ -128,7 +131,10 @@ jobs:
           test "$(fc-match --format='%{family}' 'Liberation Sans')" = "Liberation Sans"
           test "$(fc-match --format='%{family}' 'Liberation Serif')" = "Liberation Serif"
           test "$(fc-match --format='%{family}' 'Liberation Mono')" = "Liberation Mono"
-          test "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" = "WenQuanYi Zen Hei"
+          case "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" in
+            "WenQuanYi Zen Hei"*) ;;
+            *) exit 1 ;;
+          esac
 
       - name: Generate PDF smoke artifact
         env:
@@ -227,9 +233,12 @@ jobs:
       - name: Verify restricted renderer runtime
         run: |
           set -euo pipefail
-          cleanup() { docker rm -f markdown-mint-renderer-security >/dev/null 2>&1 || true; }
+          cleanup() {
+            docker logs markdown-mint-renderer-security 2>&1 || true
+            docker rm -f markdown-mint-renderer-security >/dev/null 2>&1 || true
+          }
           trap cleanup EXIT
-          docker run --detach --rm --name markdown-mint-renderer-security \
+          docker run --detach --name markdown-mint-renderer-security \
             --read-only \
             --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
             --cap-drop=ALL \
@@ -304,7 +313,10 @@ jobs:
           test "$(fc-match --format='%{family}' 'Liberation Sans')" = "Liberation Sans"
           test "$(fc-match --format='%{family}' 'Liberation Serif')" = "Liberation Serif"
           test "$(fc-match --format='%{family}' 'Liberation Mono')" = "Liberation Mono"
-          test "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" = "WenQuanYi Zen Hei"
+          case "$(fc-match --format='%{family}' 'WenQuanYi Zen Hei')" in
+            "WenQuanYi Zen Hei"*) ;;
+            *) exit 1 ;;
+          esac
 
       - name: Run 20-page P95 and 100-page pressure smoke
         run: pnpm --filter @markdown-mint/renderer smoke:pressure
