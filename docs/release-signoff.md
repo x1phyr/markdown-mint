@@ -9,9 +9,9 @@
 | 项目                    | 当前候选值                                                                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | 版本 / tag              | `v1.0.0-rc.1`（候选 prerelease）                                                                                                      |
-| Git commit              | [`65eef69e8b618ddf9cad39fbdea2964da2edc50b`](https://github.com/x1phyr/markdown-mint/commit/65eef69e8b618ddf9cad39fbdea2964da2edc50b) |
-| Renderer image digest   | `sha256:665437381b6ccbcada0f8559b7471c5df93b7db497c126d2bacf7ef56ecfda8f`（CI x86_64 构建 ID，尚未推送 registry）                     |
-| runtime manifest SHA256 | `sha256:112cfce38e425ce901d044df520b97cb5c73fa24d76263c081a7d6d0b6b80c9`（CI x86_64 镜像内清单文件）                                  |
+| Git commit              | [`ac7d35853f5a5b02abed19ac32c0bfd943721829`](https://github.com/x1phyr/markdown-mint/commit/ac7d35853f5a5b02abed19ac32c0bfd943721829) |
+| Renderer image          | `ghcr.io/x1phyr/markdown-mint-renderer:v1.0.0-rc.1`；digest `sha256:e96eb6351bd807e70f001f4a10c9b1727c0f2069ff4931e3b9dd004a84723563` |
+| runtime manifest SHA256 | `sha256:ff7827a41421b553f52af90a1b759ad61ecf264ff8cb2c849cb246f8827814a1`（Release asset 中的清单文件）                                  |
 | RC 观察窗口             | 未开始；release tag 对应的生产 canary 完成后连续观察 72 小时                                                                          |
 | 发布负责人              | `x1phyr / MarkdownMint 维护者`（最终签字人）                                                                                          |
 
@@ -19,14 +19,14 @@
 
 | 编号 | 证据                                                                                                                                                                                                                                                                                                                    |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E1   | [Draft PR #5](https://github.com/x1phyr/markdown-mint/pull/5)；[最终 CI run](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287)                                                                                                                                                                          |
-| E2   | [quality：lint、typecheck、coverage test、format、audit 与 storage smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610767)                                                                                                                                                             |
-| E3   | [build：全 workspace build](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610756)                                                                                                                                                                                                           |
-| E4   | [dependency-review](https://github.com/x1phyr/markdown-mint/actions/runs/30792745249/job/91619557890)；[CodeQL](https://github.com/x1phyr/markdown-mint/runs/91619765100)                                                                                                                                               |
-| E5   | [renderer-container-build：受限运行、API smoke、manifest、Trivy](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610762)                                                                                                                                                                      |
-| E6   | [technical-mint PDF](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610816)、[minimal-report PDF](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610814)、[editorial-serif PDF](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610774) |
-| E7   | [renderer-pressure：20 页 P95 与 100 页压力 smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610815)                                                                                                                                                                                    |
-| E8   | [Chromium E2E + axe](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610718)、[Firefox E2E + axe](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610796)、[WebKit E2E + axe](https://github.com/x1phyr/markdown-mint/actions/runs/30792745287/job/91619610768)     |
+| E1   | [PR #6 合并](https://github.com/x1phyr/markdown-mint/pull/6)；[main CI](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657)；[v1.0.0-rc.1 Release](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380) |
+| E2   | [main CI：quality、lint、typecheck、测试、format、audit 与 storage smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657) |
+| E3   | [main CI：全 workspace build](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657) |
+| E4   | [main CodeQL](https://github.com/x1phyr/markdown-mint/actions/runs/30816428603)；[tag CodeQL](https://github.com/x1phyr/markdown-mint/actions/runs/30816586276) |
+| E5   | [Release verify-and-release：受限运行、API smoke、manifest、Trivy 与 GHCR 发布](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
+| E6   | [Release verify-and-release：三套标准与 complex fixture PDF](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
+| E7   | [Release verify-and-release：renderer pressure smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
+| E8   | [Release verify-and-release：Chromium、Firefox、WebKit E2E 与 axe](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
 
 ## 自动化门禁
 
@@ -39,8 +39,9 @@
 | 真实容器 PDF、缩略图、签名下载与 tmpfs | E5；API smoke 返回 PDF、thumbnail、signed download，512 MiB noexec tmpfs 容量校验通过 | ☑ 通过 |
 | 存储重启恢复、备份归档与恢复 smoke     | E2；quality job 已执行 storage recovery 与 backup smoke                               | ☑ 通过 |
 | 运行时 manifest、字体和第三方 notices  | E5；Node 22.22.2、Playwright 1.62.1、字体版本和 notices 已校验                        | ☑ 通过 |
+| GitHub Pages 发布                         | [Deploy Pages](https://github.com/x1phyr/markdown-mint/actions/runs/30816428695)；线上站点返回 HTTP 200，部署 SHA 为 `ac7d358…` | ☑ 通过 |
 
-补充的本地镜像验证：17 个测试文件、113 个测试通过；无网络、只读根文件系统、`/tmp` noexec、非 root、`cap-drop=ALL`、API smoke 和精确 512 MiB tmpfs 均通过。该验证用于复核，不替代 E5 的 hosted CI 结果。
+补充的本地镜像验证：18 个测试文件、116 个测试通过；无网络、只读根文件系统、`/tmp` noexec、非 root、`cap-drop=ALL`、API smoke 和精确 512 MiB tmpfs 均通过。该验证用于复核，不替代 E5 的 hosted CI 结果。
 
 ## 人工验收
 
@@ -66,7 +67,7 @@
 
 ## 发布决定
 
-当前决定：**批准创建 `v1.0.0-rc.1` prerelease；不批准稳定版 tag 和生产部署**。原因是人工签字、回滚演练和 72 小时观察尚未完成；自动化门禁通过不能替代这些发布条件。
+当前决定：**已批准并创建 `v1.0.0-rc.1` prerelease；不批准稳定版 tag 和生产部署**。候选 Release、GHCR 镜像和 GitHub Pages 均已发布；人工签字、回滚演练和 72 小时观察尚未完成，自动化门禁通过不能替代这些发布条件。
 
 只有以下条件全部满足、发布阻塞项为零、上一稳定版本回滚已验证，才能勾选：
 
