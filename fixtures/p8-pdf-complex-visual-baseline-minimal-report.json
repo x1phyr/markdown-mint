@@ -5,35 +5,35 @@
   "pages": [
     {
       "file": "page-1.png",
-      "sha256": "c46c38f03dcfa2e30c14b89866aa07b71fe0d0f5090ea84a34bdcf6df01d3893"
+      "sha256": "35d6687f30f9ef6b96653669b97ba83365a574a96e09709c0a042b0cc185ba77"
     },
     {
       "file": "page-2.png",
-      "sha256": "3ebfc32426c72008a92623be025f1a3d59e5c6d5a1ed7556f85a656ce929ee04"
+      "sha256": "218d26d65534e26e264ced04886ffb00887f41882ef80d1fdf22e1ce8ce9f731"
     },
     {
       "file": "page-3.png",
-      "sha256": "d5115afd8ffbaedf44cff5179892a3576eb5d936dba2a3b3d1cc3750da03a95b"
+      "sha256": "6e7a60f5b1c8a41ba1b7b9f3cbe8920dc6993292fbeb45422a66a14998af4491"
     },
     {
       "file": "page-4.png",
-      "sha256": "c2d465f405550917416acbaff71d1efcf0da6b712f0cf1f81989089c567622af"
+      "sha256": "53dae6b01f738a249fbe42d47067ccc68380b45e0357c5a8636f57afe4a127e9"
     },
     {
       "file": "page-5.png",
-      "sha256": "041d5a9321ee061136c62b7d5aac6c1c8a62feb739ef95121df6b918a8509438"
+      "sha256": "998c5ac46c071775495ec76c3510c46e7dbf292aece2c587dda59c94d1405998"
     },
     {
       "file": "page-6.png",
-      "sha256": "eb0d496d6295cca983f25a806420f75ca9b0fe2290645ab4151e81cc5a32b461"
+      "sha256": "61881e704acc0f1ed8d42e3b012b2ec325f71fc7c7c913dca3396b08a7e3de9f"
     },
     {
       "file": "page-7.png",
-      "sha256": "9fa76b8c5ff8be4d271dc6c61faa660b1ebe07a6cbf7facc63eaf5b4e15aa34b"
+      "sha256": "56fc789eb31bcf2d6d0dd492b2fedb6c09d786dded839b415bea48dddd17a1f2"
     },
     {
       "file": "page-8.png",
-      "sha256": "719393878893a3e320ab981067e2a517af733e0592484eacc98f90d76733f08c"
+      "sha256": "41e1987e18478bc5419a8b7fefd4694c1fd007d06c4e487947095bef0ea202ee"
     }
   ],
   "renderer": "playwright-chromium"
