@@ -6,11 +6,11 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "build:pages": "nuxt build --preset github_pages",
     "clean": "rm -rf .nuxt .output dist",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "postinstall": "nuxt prepare",
+    "start": "node .output/server/index.mjs",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {

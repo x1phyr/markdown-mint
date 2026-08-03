@@ -1,0 +1,37 @@
+services:
+  renderer:
+    build:
+      context: ..
+      dockerfile: apps/renderer/Dockerfile
+      args:
+        MARKDOWN_MINT_VERSION: local
+    image: markdown-mint-renderer:local
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4310
+      RENDERER_VERSION: local
+      RENDERER_CORS_ORIGIN: http://127.0.0.1:3000
+      RENDERER_DOWNLOAD_SIGNING_SECRET: local-renderer-download-secret-32-characters-long
+      RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS: 300
+      RENDERER_DATA_DIR: /var/lib/markdown-mint
+      RENDERER_RETENTION_MS: 3600000
+      RENDERER_RETENTION_SWEEP_MS: 60000
+    ports:
+      - "127.0.0.1:4310:4310"
+    volumes:
+      - renderer-local-data:/var/lib/markdown-mint
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4310/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  renderer-local-data:

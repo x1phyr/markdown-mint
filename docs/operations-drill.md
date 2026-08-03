@@ -20,10 +20,10 @@ RENDERER_BASE_URL=http://127.0.0.1:4310 node scripts/renderer-api-smoke.mjs
 
 ## 回滚演练
 
-1. 记录当前 Pages 部署、Renderer 镜像 digest、环境变量版本和签名密钥版本；
+1. 记录当前 Render Web/Renderer 部署、Renderer 镜像 digest、环境变量版本和签名密钥版本；
 2. 用上一稳定版本镜像启动受限容器，运行 `/health` 和 `renderer-api-smoke.mjs`；
 3. 验证旧版 PDF/缩略图下载、CORS、保留期和日志追踪仍可用；
-4. 回滚 Pages 到上一稳定提交或重新部署上一 artifact；
+4. 在 Render 上将 Web 与 Renderer 分别回滚到上一稳定提交/镜像；
 5. 记录故障时间线、影响范围、触发器、修复和后续 fixture。
 
 ## 备份与恢复边界

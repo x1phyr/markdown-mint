@@ -1,5 +1,6 @@
 .git
 .github
+.pnpm-store
 .nuxt
 .output
 coverage

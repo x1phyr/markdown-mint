@@ -30,16 +30,16 @@
 
 ## 自动化门禁
 
-| 门禁                                   | 证据链接 / artifact                                                                                                             | 结果   |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| `pnpm check`、`pnpm build`             | E2、E3；quality 分步覆盖 lint/typecheck/test/format，build job 覆盖全 workspace build                                           | ☑ 通过 |
-| 依赖审计、Trivy、CodeQL                | E2、E4、E5；Trivy 的 CRITICAL/HIGH 阻断扫描通过                                                                                 | ☑ 通过 |
-| Chromium / Firefox / WebKit E2E 与 axe | E8；三套浏览器 job 均通过                                                                                                       | ☑ 通过 |
-| 三套标准与复杂 fixture PDF 视觉回归    | E6；每套主题均包含标准与 complex fixture 视觉校验                                                                               | ☑ 通过 |
-| 真实容器 PDF、缩略图、签名下载与 tmpfs | E5；API smoke 返回 PDF、thumbnail、signed download，512 MiB noexec tmpfs 容量校验通过                                           | ☑ 通过 |
-| 存储重启恢复、备份归档与恢复 smoke     | E2；quality job 已执行 storage recovery 与 backup smoke                                                                         | ☑ 通过 |
-| 运行时 manifest、字体和第三方 notices  | E5；Node 22.22.2、Playwright 1.62.1、字体版本和 notices 已校验                                                                  | ☑ 通过 |
-| GitHub Pages 发布                      | [Deploy Pages](https://github.com/x1phyr/markdown-mint/actions/runs/30816428695)；线上站点返回 HTTP 200，部署 SHA 为 `ac7d358…` | ☑ 通过 |
+| 门禁                                   | 证据链接 / artifact                                                                                           | 结果     |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------- |
+| `pnpm check`、`pnpm build`             | E2、E3；quality 分步覆盖 lint/typecheck/test/format，build job 覆盖全 workspace build                         | ☑ 通过   |
+| 依赖审计、Trivy、CodeQL                | E2、E4、E5；Trivy 的 CRITICAL/HIGH 阻断扫描通过                                                               | ☑ 通过   |
+| Chromium / Firefox / WebKit E2E 与 axe | E8；三套浏览器 job 均通过                                                                                     | ☑ 通过   |
+| 三套标准与复杂 fixture PDF 视觉回归    | E6；每套主题均包含标准与 complex fixture 视觉校验                                                             | ☑ 通过   |
+| 真实容器 PDF、缩略图、签名下载与 tmpfs | E5；API smoke 返回 PDF、thumbnail、signed download，512 MiB noexec tmpfs 容量校验通过                         | ☑ 通过   |
+| 存储重启恢复、备份归档与恢复 smoke     | E2；quality job 已执行 storage recovery 与 backup smoke                                                       | ☑ 通过   |
+| 运行时 manifest、字体和第三方 notices  | E5；Node 22.22.2、Playwright 1.62.1、字体版本和 notices 已校验                                                | ☑ 通过   |
+| Render 部署（新目标）                  | [render.yaml](../render.yaml)；Web + Renderer 的本地构建、健康检查和真实导出已通过，线上 Blueprint 部署待执行 | ◐ 待部署 |
 
 补充的本地镜像验证：18 个测试文件、116 个测试通过；无网络、只读根文件系统、`/tmp` noexec、非 root、`cap-drop=ALL`、API smoke 和精确 512 MiB tmpfs 均通过。该验证用于复核，不替代 E5 的 hosted CI 结果。
 
@@ -60,14 +60,14 @@
 ## RC 观察结论
 
 - 观察窗口状态：未开始；必须在 release tag 和生产 canary 成功后启动连续 72 小时窗口。
-- 观察期间的 P0/P1 事故与处理：暂无观察数据；启动后按 [operations-drill.md](operations-drill.md) 记录 request ID、trace ID、镜像 digest 和处理时间，不记录 Markdown 正文或密钥。
+- 观察期间的 P0/P1 事故与处理：暂无观察数据；Render canary 启动后按 [operations-drill.md](operations-drill.md) 记录 request ID、trace ID、镜像 digest 和处理时间，不记录 Markdown 正文或密钥。
 - 未解释的稳定性回归：当前自动化门禁未发现；生产观察尚未验证。
 - 未关闭的 P2 及其发布影响：GitHub push 提示默认分支存在 20 个 Dependabot advisory（2 high、11 moderate、7 low）；本 PR 的 dependency-review、pnpm audit 和 Trivy 均通过，但发布负责人仍需确认这些 advisory 是否影响 release scope，并记录风险接受或修复计划。
 - 是否重新开始 72 小时观察窗口：否；当前没有已开始或需重置的生产观察窗口。
 
 ## 发布决定
 
-当前决定：**已批准并创建 `v1.0.0-rc.1` prerelease；不批准稳定版 tag 和生产部署**。候选 Release、GHCR 镜像和 GitHub Pages 均已发布；人工签字、回滚演练和 72 小时观察尚未完成，自动化门禁通过不能替代这些发布条件。
+当前决定：**已批准并创建 `v1.0.0-rc.1` prerelease；不批准稳定版 tag 和生产部署**。候选 Release 和 GHCR 镜像已发布，GitHub Pages 部署已退役，Render 部署待执行；人工签字、回滚演练和 72 小时观察尚未完成，自动化门禁通过不能替代这些发布条件。
 
 只有以下条件全部满足、发布阻塞项为零、上一稳定版本回滚已验证，才能勾选：
 

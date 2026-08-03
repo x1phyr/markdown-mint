@@ -11,6 +11,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/dist/**",
       "**/node_modules/**",
+      "**/.pnpm-store/**",
       "**/tmp/**",
       "**/artifacts/**",
       "**/workspaces/**",
