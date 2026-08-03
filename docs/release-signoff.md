@@ -11,35 +11,35 @@
 | 版本 / tag              | `v1.0.0-rc.1`（候选 prerelease）                                                                                                      |
 | Git commit              | [`ac7d35853f5a5b02abed19ac32c0bfd943721829`](https://github.com/x1phyr/markdown-mint/commit/ac7d35853f5a5b02abed19ac32c0bfd943721829) |
 | Renderer image          | `ghcr.io/x1phyr/markdown-mint-renderer:v1.0.0-rc.1`；digest `sha256:e96eb6351bd807e70f001f4a10c9b1727c0f2069ff4931e3b9dd004a84723563` |
-| runtime manifest SHA256 | `sha256:ff7827a41421b553f52af90a1b759ad61ecf264ff8cb2c849cb246f8827814a1`（Release asset 中的清单文件）                                  |
+| runtime manifest SHA256 | `sha256:ff7827a41421b553f52af90a1b759ad61ecf264ff8cb2c849cb246f8827814a1`（Release asset 中的清单文件）                               |
 | RC 观察窗口             | 未开始；release tag 对应的生产 canary 完成后连续观察 72 小时                                                                          |
 | 发布负责人              | `x1phyr / MarkdownMint 维护者`（最终签字人）                                                                                          |
 
 ## 证据索引
 
-| 编号 | 证据                                                                                                                                                                                                                                                                                                                    |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 编号 | 证据                                                                                                                                                                                                                               |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | E1   | [PR #6 合并](https://github.com/x1phyr/markdown-mint/pull/6)；[main CI](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657)；[v1.0.0-rc.1 Release](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380) |
-| E2   | [main CI：quality、lint、typecheck、测试、format、audit 与 storage smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657) |
-| E3   | [main CI：全 workspace build](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657) |
-| E4   | [main CodeQL](https://github.com/x1phyr/markdown-mint/actions/runs/30816428603)；[tag CodeQL](https://github.com/x1phyr/markdown-mint/actions/runs/30816586276) |
-| E5   | [Release verify-and-release：受限运行、API smoke、manifest、Trivy 与 GHCR 发布](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
-| E6   | [Release verify-and-release：三套标准与 complex fixture PDF](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
-| E7   | [Release verify-and-release：renderer pressure smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
-| E8   | [Release verify-and-release：Chromium、Firefox、WebKit E2E 与 axe](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447) |
+| E2   | [main CI：quality、lint、typecheck、测试、format、audit 与 storage smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657)                                                                                        |
+| E3   | [main CI：全 workspace build](https://github.com/x1phyr/markdown-mint/actions/runs/30816428657)                                                                                                                                    |
+| E4   | [main CodeQL](https://github.com/x1phyr/markdown-mint/actions/runs/30816428603)；[tag CodeQL](https://github.com/x1phyr/markdown-mint/actions/runs/30816586276)                                                                    |
+| E5   | [Release verify-and-release：受限运行、API smoke、manifest、Trivy 与 GHCR 发布](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447)                                                                  |
+| E6   | [Release verify-and-release：三套标准与 complex fixture PDF](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447)                                                                                     |
+| E7   | [Release verify-and-release：renderer pressure smoke](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447)                                                                                            |
+| E8   | [Release verify-and-release：Chromium、Firefox、WebKit E2E 与 axe](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447)                                                                               |
 
 ## 自动化门禁
 
-| 门禁                                   | 证据链接 / artifact                                                                   | 结果   |
-| -------------------------------------- | ------------------------------------------------------------------------------------- | ------ |
-| `pnpm check`、`pnpm build`             | E2、E3；quality 分步覆盖 lint/typecheck/test/format，build job 覆盖全 workspace build | ☑ 通过 |
-| 依赖审计、Trivy、CodeQL                | E2、E4、E5；Trivy 的 CRITICAL/HIGH 阻断扫描通过                                       | ☑ 通过 |
-| Chromium / Firefox / WebKit E2E 与 axe | E8；三套浏览器 job 均通过                                                             | ☑ 通过 |
-| 三套标准与复杂 fixture PDF 视觉回归    | E6；每套主题均包含标准与 complex fixture 视觉校验                                     | ☑ 通过 |
-| 真实容器 PDF、缩略图、签名下载与 tmpfs | E5；API smoke 返回 PDF、thumbnail、signed download，512 MiB noexec tmpfs 容量校验通过 | ☑ 通过 |
-| 存储重启恢复、备份归档与恢复 smoke     | E2；quality job 已执行 storage recovery 与 backup smoke                               | ☑ 通过 |
-| 运行时 manifest、字体和第三方 notices  | E5；Node 22.22.2、Playwright 1.62.1、字体版本和 notices 已校验                        | ☑ 通过 |
-| GitHub Pages 发布                         | [Deploy Pages](https://github.com/x1phyr/markdown-mint/actions/runs/30816428695)；线上站点返回 HTTP 200，部署 SHA 为 `ac7d358…` | ☑ 通过 |
+| 门禁                                   | 证据链接 / artifact                                                                                                             | 结果   |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `pnpm check`、`pnpm build`             | E2、E3；quality 分步覆盖 lint/typecheck/test/format，build job 覆盖全 workspace build                                           | ☑ 通过 |
+| 依赖审计、Trivy、CodeQL                | E2、E4、E5；Trivy 的 CRITICAL/HIGH 阻断扫描通过                                                                                 | ☑ 通过 |
+| Chromium / Firefox / WebKit E2E 与 axe | E8；三套浏览器 job 均通过                                                                                                       | ☑ 通过 |
+| 三套标准与复杂 fixture PDF 视觉回归    | E6；每套主题均包含标准与 complex fixture 视觉校验                                                                               | ☑ 通过 |
+| 真实容器 PDF、缩略图、签名下载与 tmpfs | E5；API smoke 返回 PDF、thumbnail、signed download，512 MiB noexec tmpfs 容量校验通过                                           | ☑ 通过 |
+| 存储重启恢复、备份归档与恢复 smoke     | E2；quality job 已执行 storage recovery 与 backup smoke                                                                         | ☑ 通过 |
+| 运行时 manifest、字体和第三方 notices  | E5；Node 22.22.2、Playwright 1.62.1、字体版本和 notices 已校验                                                                  | ☑ 通过 |
+| GitHub Pages 发布                      | [Deploy Pages](https://github.com/x1phyr/markdown-mint/actions/runs/30816428695)；线上站点返回 HTTP 200，部署 SHA 为 `ac7d358…` | ☑ 通过 |
 
 补充的本地镜像验证：18 个测试文件、116 个测试通过；无网络、只读根文件系统、`/tmp` noexec、非 root、`cap-drop=ALL`、API smoke 和精确 512 MiB tmpfs 均通过。该验证用于复核，不替代 E5 的 hosted CI 结果。
 
