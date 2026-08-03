@@ -1,0 +1,49 @@
+services:
+  - name: markdown-mint-renderer
+    type: web
+    runtime: docker
+    region: singapore
+    plan: starter
+    dockerfilePath: apps/renderer/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "4310"
+      - key: RENDERER_VERSION
+        value: 1.0.0-rc.1
+      - key: RENDERER_DATA_DIR
+        value: /var/lib/markdown-mint
+      - key: RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS
+        value: "300"
+      - key: RENDERER_DOWNLOAD_SIGNING_SECRET
+        generateValue: true
+      - key: RENDERER_CORS_ORIGIN
+        sync: false
+    disk:
+      name: renderer-data
+      mountPath: /var/lib/markdown-mint
+      sizeGB: 1
+
+  - name: markdown-mint-web
+    type: web
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: >-
+      corepack enable &&
+      corepack install --global pnpm@11.18.0 &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @markdown-mint/web^... build &&
+      pnpm --filter @markdown-mint/web build
+    startCommand: pnpm --filter @markdown-mint/web start
+    healthCheckPath: /
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.2
+      - key: NUXT_PUBLIC_RENDERER_URL
+        sync: false

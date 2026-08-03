@@ -1,9 +1,8 @@
 # MarkdownMint
 
 [![CI](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml/badge.svg)](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml)
-[![Deploy Pages](https://github.com/x1phyr/markdown-mint/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/x1phyr/markdown-mint/actions/workflows/deploy-pages.yml)
 
-在线预览：[x1phyr.github.io/markdown-mint](https://x1phyr.github.io/markdown-mint/)
+部署目标：Render（见 [部署与运维](docs/deployment.md) 和 [render.yaml](render.yaml)）。
 
 > Turn finished Markdown into carefully designed PDF and standalone HTML documents.
 >
@@ -54,7 +53,8 @@ markdown-mint/
 ```bash
 corepack enable
 pnpm install
-pnpm dev
+pnpm dev:renderer # 终端 1
+pnpm dev:web      # 终端 2
 ```
 
 常用命令：
@@ -64,7 +64,8 @@ pnpm dev
 | `pnpm dev`                                               | 启动 Web 应用                      |
 | `pnpm dev:renderer`                                      | 启动本地渲染器健康端点             |
 | `pnpm build`                                             | 构建全部应用和包                   |
-| `pnpm build:pages`                                       | 构建 GitHub Pages 静态站           |
+| `pnpm docker:renderer:up`                                | 构建并启动本地 Renderer 容器       |
+| `pnpm docker:renderer:down`                              | 停止本地 Renderer 容器             |
 | `pnpm test`                                              | 运行单元测试                       |
 | `pnpm test:e2e:web`                                      | 运行已构建 Web 的浏览器 smoke      |
 | `pnpm --filter @markdown-mint/renderer smoke:pressure`   | 运行 20 页 P95 与 100 页压力 smoke |
