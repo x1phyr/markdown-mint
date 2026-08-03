@@ -257,10 +257,6 @@ jobs:
           test "$(docker inspect markdown-mint-renderer-security --format '{{.Config.User}}')" = "node"
           test "$(docker inspect markdown-mint-renderer-security --format '{{.HostConfig.ReadonlyRootfs}}')" = "true"
           docker inspect markdown-mint-renderer-security --format '{{json .HostConfig.CapDrop}}' | grep -F 'ALL'
-
-      - name: Verify renderer tmpfs capacity
-        run: |
-          set -euo pipefail
           test "$(docker inspect markdown-mint-renderer-security --format '{{json .HostConfig.Tmpfs}}')" = '{"/tmp":"rw,noexec,nosuid,nodev,size=512m"}'
           tmpfs_bytes="$(docker exec markdown-mint-renderer-security node -e 'const stat = require("node:fs").statfsSync("/tmp"); process.stdout.write(String(stat.bsize * stat.blocks));')"
           test "$tmpfs_bytes" -ge 536870912
