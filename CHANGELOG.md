@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- Upgraded Nuxt from `4.4.7` to `4.5.1` and refreshed workspace overrides (`unctx@3.0.0`, `@nuxt/cli@3.37.0`) so the security release installs cleanly.
+
 ### Fixed
 
 - Export HTTP requests now accept local image assets as base64 strings (matching persistence serialization), so the browser and JSON API can deliver binary assets end-to-end.
