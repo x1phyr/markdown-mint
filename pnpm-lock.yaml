@@ -79,9 +79,6 @@ importers:
 
   apps/web:
     dependencies:
-      '@markdown-mint/document-schema':
-        specifier: workspace:*
-        version: link:../../packages/document-schema
       '@markdown-mint/theme-runtime':
         specifier: workspace:*
         version: link:../../packages/theme-runtime

@@ -18,9 +18,8 @@ export const EXPORT_LIMITS = {
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
 
 function decodeBase64(value: string): Uint8Array {
-  if (typeof Buffer !== "undefined") {
-    return new Uint8Array(Buffer.from(value, "base64"));
-  }
+  // Prefer Web APIs so the package stays bundle-safe for Nuxt/browser clients.
+  // Node 22+ exposes atob/btoa on globalThis without needing Buffer polyfills.
   const binary = globalThis.atob(value);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
@@ -30,11 +29,11 @@ function decodeBase64(value: string): Uint8Array {
 }
 
 export function encodeBase64(bytes: Uint8Array): string {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(bytes).toString("base64");
-  }
+  const chunkSize = 0x8000;
   let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (let index = 0; index < bytes.byteLength; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
   return globalThis.btoa(binary);
 }
 

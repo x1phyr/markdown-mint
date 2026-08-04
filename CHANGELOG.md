@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- `document-schema` is the shared wire contract for export requests and job payloads; Web validates job responses with Zod.
+- `document-schema` remains the shared server-side wire contract for export requests and job payloads; the Web client encodes assets locally and avoids importing Zod so Nitro SSR does not collide with Zod's internal `process` helper.
 - Web workflow modules split draft persistence, renderer client, i18n, and export helpers out of `app.vue`, and drafts now restore locale plus feature toggles.
 - Oversized export bodies return HTTP `413`; production-like deployments can fail closed on unsafe CORS/signing via `RENDERER_ENFORCE_SAFE_CONFIG`.
 

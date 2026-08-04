@@ -1,20 +1,68 @@
-import {
-  encodeBase64,
-  exportJobPayloadSchema,
-  type ExportJobPayload,
-  type WireDocumentAsset,
-} from "@markdown-mint/document-schema";
-
 export type Locale = "zh-CN" | "en";
 export type OutputFormat = "html" | "pdf";
 export type Step = "configure" | "generate" | "import" | "result" | "theme";
 
-export type JobStatus = ExportJobPayload;
+export interface JobArtifact {
+  fileName: string;
+  format: OutputFormat;
+  mediaType: string;
+  pageCount?: number;
+  sha256: string;
+  sizeBytes: number;
+  thumbnail?: {
+    fileName: string;
+    mediaType: "image/png";
+    sha256: string;
+    sizeBytes: number;
+  };
+}
+
+export interface JobLog {
+  durationMs?: number;
+  finishedAt?: number;
+  stage: string;
+  startedAt: number;
+}
+
+export interface JobStatus {
+  artifact?: JobArtifact;
+  attempt: number;
+  diagnostics: Array<{ level: string; message: string; rule: string }>;
+  downloads?: {
+    artifactUrl?: string;
+    expiresAt?: number;
+    thumbnailUrl?: string;
+  };
+  error?: { code: string; message: string };
+  id: string;
+  logs: JobLog[];
+  state: string;
+}
 
 export interface AttachedAsset {
   bytes: Uint8Array;
   mediaType: string;
   path: string;
+}
+
+export interface WireDocumentAsset {
+  bytes: string;
+  mediaType: string;
+  path: string;
+}
+
+/**
+ * Keep encoding in the web bundle without importing Zod/document-schema.
+ * Zod's internal `process` helper collides with Nitro's `node:process` import
+ * when both land in the same SSR chunk.
+ */
+export function encodeBase64(bytes: Uint8Array): string {
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let index = 0; index < bytes.byteLength; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return globalThis.btoa(binary);
 }
 
 export function toWireAssets(assets: readonly AttachedAsset[]): WireDocumentAsset[] {
@@ -26,7 +74,14 @@ export function toWireAssets(assets: readonly AttachedAsset[]): WireDocumentAsse
 }
 
 export function parseJobPayload(value: unknown): JobStatus {
-  return exportJobPayloadSchema.parse(value);
+  if (!value || typeof value !== "object") {
+    throw new Error("invalid-job-payload");
+  }
+  const candidate = value as JobStatus;
+  if (typeof candidate.id !== "string" || typeof candidate.state !== "string") {
+    throw new Error("invalid-job-payload");
+  }
+  return candidate;
 }
 
 export function newIdempotencyKey(): string {
