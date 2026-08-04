@@ -4,14 +4,14 @@
 
 ## 版本信息
 
-| 项目                    | 当前值                                                                                  |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| 版本 / tag              | `v1.0.0`                                                                                |
-| Git commit              | 见 `v1.0.0` tag（含 Nuxt 4.5.1 安全升级、#10 渲染硬化与发布文档整理）                   |
-| Renderer image          | `ghcr.io/x1phyr/markdown-mint-renderer:v1.0.0`（由 Release workflow 发布后回填 digest） |
-| runtime manifest SHA256 | Release asset 中的清单文件（tag 构建后回填）                                            |
-| 观察窗口                | 建议在 Render canary 成功后连续观察 72 小时                                             |
-| 发布负责人              | `x1phyr / MarkdownMint 维护者`                                                          |
+| 项目                    | 当前值                                                                                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 版本 / tag              | `v1.0.0`                                                                                                                                            |
+| Git commit              | [`e610bcd080607dda9aaf2b035dd7d0a11788ad0a`](https://github.com/x1phyr/markdown-mint/commit/e610bcd080607dda9aaf2b035dd7d0a11788ad0a)               |
+| Renderer image          | `ghcr.io/x1phyr/markdown-mint-renderer:v1.0.0`；digest `sha256:d5caf3fbfc5f46762e4d2aa97a9bfb3d44bb19f77ea41166cb9a6ba77890c312`                    |
+| runtime manifest SHA256 | `sha256:ff7827a41421b553f52af90a1b759ad61ecf264ff8cb2c849cb246f8827814a1`（[Release](https://github.com/x1phyr/markdown-mint/releases/tag/v1.0.0)） |
+| 观察窗口                | 建议在 Render canary 成功后连续观察 72 小时                                                                                                         |
+| 发布负责人              | `x1phyr / MarkdownMint 维护者`                                                                                                                      |
 
 ## 证据索引
 
@@ -27,6 +27,7 @@
 | E8   | [Release verify-and-release：Chromium、Firefox、WebKit E2E 与 axe](https://github.com/x1phyr/markdown-mint/actions/runs/30816589380/job/91695756447)                                                                               |
 | E9   | [#11 Nuxt 4.5.1 安全升级 CI](https://github.com/x1phyr/markdown-mint/pull/11)（quality/build/PDF/E2E 全绿）                                                                                                                        |
 | E10  | [#10 渲染硬化](https://github.com/x1phyr/markdown-mint/pull/10)；admission control、AbortSignal 超时、idempotency fingerprint                                                                                                      |
+| E11  | [v1.0.0 Release workflow](https://github.com/x1phyr/markdown-mint/actions/runs/30905051671)；[GitHub Release](https://github.com/x1phyr/markdown-mint/releases/tag/v1.0.0)                                                         |
 
 ## 自动化门禁
 
