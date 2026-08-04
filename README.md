@@ -1,28 +1,91 @@
+<div align="center">
+
 # MarkdownMint
 
+### 把写好的 Markdown，铸造成可以交付的文档
+
+将 Markdown 稳定地导出为精美 PDF 与可离线打开的单文件 HTML。
+
 [![CI](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml/badge.svg)](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/status-v1.0.0--rc.1-orange.svg)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-部署目标：Render（见 [部署与运维](docs/deployment.md) 和 [render.yaml](render.yaml)）。
+</div>
 
-> Turn finished Markdown into carefully designed PDF and standalone HTML documents.
->
-> 将写好的 Markdown 铸造成适合交付、发布与归档的精美 PDF 和独立 HTML 文档。
+> MarkdownMint 不是另一个 Markdown 编辑器。
+> 它专注于写作完成后的最后一公里：解析内容、应用主题、生成最终成品。
 
-MarkdownMint 是一个主题驱动的文档生成器。它不试图成为 Markdown 编辑器，而是专注于最后一公里：解析已经完成的 Markdown，应用专业排版主题，并稳定地导出最终成品。
+## 为什么是 MarkdownMint？
 
-项目当前为 **v1.0.0-rc.1 候选版**，尚未宣告稳定版；公开 API、主题协议和目录结构在 v1.0.0 前仍可能调整。
+把内容和呈现分开，让文档交付变得可重复、可维护：
 
-## v1.0 目标
+| 你提供                 | MarkdownMint 负责                   | 你得到               |
+| ---------------------- | ----------------------------------- | -------------------- |
+| 一份 Markdown          | 解析、排版与主题装配                | 专业 PDF             |
+| 图片、表格、代码与公式 | 隔离渲染与资源处理                  | 单文件 HTML          |
+| 同一份内容             | A4 / Letter、中英文排版、封面与目录 | 可归档、可分享的文档 |
 
-- 上传或粘贴单个 Markdown 文档
-- 支持 GFM、代码块、表格、图片、脚注、KaTeX 和 Mermaid
-- 提供 Technical Mint、Minimal Report、Editorial Serif 三套首发主题
-- 导出分页稳定的 PDF 和可离线打开的单文件 HTML
-- 预先生成主题样张；用户只在点击生成时渲染完整文档
-- 对不受信任输入进行资源限制、HTML 清理和隔离渲染
-- 提供中文与英文排版、A4/Letter、封面、目录和页码
+## 当前能力
 
-完整范围见 [产品定义](docs/product.md) 与 [v1.0 路线图](docs/roadmap-v1.md)。
+- **完整 Markdown 体验**：GFM、代码块、表格、图片、脚注、KaTeX 与 Mermaid
+- **主题驱动排版**：Technical Mint、Minimal Report、Editorial Serif 三套官方主题
+- **稳定导出**：分页稳定的 PDF，以及无需额外资源的 standalone HTML
+- **文档级配置**：中文 / 英文、A4 / Letter、封面、目录与页码
+- **更安全的渲染链路**：HTML 清理、资源限制与隔离的 Renderer 服务
+- **更快的预览体验**：主题样张预先生成，完整文档只在点击生成时渲染
+
+## 预览与部署
+
+项目的部署目标是 [Render](docs/deployment.md)，由两个服务组成：
+
+```text
+┌──────────────┐       HTTPS        ┌──────────────────┐
+│  Web / Nuxt  │ ─────────────────▶ │ Renderer / Chrome │
+│  用户交互    │ ◀───────────────── │ PDF + HTML 生成  │
+└──────────────┘                    └──────────────────┘
+```
+
+根目录的 [`render.yaml`](render.yaml) 已包含 Blueprint 配置。完整的部署步骤、环境变量和生产注意事项，见 [部署与运维](docs/deployment.md)。
+
+## 快速开始
+
+环境要求：Node.js `22.22.2`、pnpm `11.18.0`。版本已由 [`.nvmrc`](.nvmrc) 和 workspace engine 固定。
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+```
+
+启动本地 Web 与 Renderer（分别在两个终端执行）：
+
+```bash
+pnpm dev:renderer
+pnpm dev:web
+```
+
+打开 Web 后即可开始体验。只查看页面时可以只启动 Web；要完整验证 PDF / HTML 导出，两项服务都需要运行。
+
+### Docker Renderer
+
+如果希望使用和生产更接近的 Chromium 环境：
+
+```bash
+pnpm docker:renderer:up
+curl --fail http://127.0.0.1:4310/health
+pnpm docker:renderer:down
+```
+
+## 常用命令
+
+| 命令                | 用途                       |
+| ------------------- | -------------------------- |
+| `pnpm dev`          | 启动 Web 应用              |
+| `pnpm build`        | 构建全部应用和包           |
+| `pnpm test`         | 运行单元测试               |
+| `pnpm test:e2e:web` | 运行 Web 浏览器 smoke 测试 |
+| `pnpm typecheck`    | 运行 TypeScript 检查       |
+| `pnpm lint`         | 运行 ESLint                |
+| `pnpm check`        | 执行提交前完整质量门禁     |
 
 ## 仓库结构
 
@@ -30,77 +93,36 @@ MarkdownMint 是一个主题驱动的文档生成器。它不试图成为 Markdo
 markdown-mint/
 ├── apps/
 │   ├── web/                 # Nuxt Web 应用与主题展示站
-│   └── renderer/            # 隔离的文档生成服务
+│   └── renderer/            # 隔离的 PDF / HTML 生成服务
 ├── packages/
 │   ├── compiler/            # Markdown → 语义 HTML
-│   ├── document-schema/     # 跨边界请求/结果协议
+│   ├── document-schema/     # 跨边界请求 / 结果协议
 │   ├── html-exporter/       # 单文件 HTML 输出
-│   ├── theme-sdk/           # 主题 Manifest 和作者协议
+│   ├── theme-sdk/           # 主题 Manifest 与作者协议
 │   ├── theme-runtime/       # 主题装配与运行时
 │   ├── themes/              # 官方主题
-│   └── shared/              # 小型共享类型与工具
-├── fixtures/                # 渲染、兼容性和压力测试文档
+│   └── shared/               # 共享类型与工具
+├── fixtures/                # 渲染、兼容性与压力测试文档
 └── docs/                    # 产品、架构、路线图与协作规范
 ```
 
-## 本地开发
+## 文档导航
 
-要求：
+- [产品定义与 v1.0 边界](docs/product.md) · [系统架构](docs/architecture.md) · [v1.0 路线图](docs/roadmap-v1.md)
+- [主题开发规范](docs/theme-authoring.md) · [格式参考](docs/format-reference.md) · [迁移说明](docs/migrations.md)
+- [部署与运维](docs/deployment.md) · [故障排查](docs/troubleshooting.md) · [发布就绪清单](docs/release-readiness.md)
+- [隐私说明](docs/privacy.md) · [安全策略](SECURITY.md) · [威胁模型](docs/threat-model.md)
+- [贡献指南](CONTRIBUTING.md) · [治理模型](GOVERNANCE.md) · [第三方许可清单](docs/third-party-licenses.md)
 
-- Node.js 22.22.2（通过 `.nvmrc` 与 workspace engine 固定）
-- pnpm 11.18.0（通过 Corepack）
+## 项目状态
 
-```bash
-corepack enable
-pnpm install
-pnpm dev:renderer # 终端 1
-pnpm dev:web      # 终端 2
-```
-
-常用命令：
-
-| 命令                                                     | 用途                               |
-| -------------------------------------------------------- | ---------------------------------- |
-| `pnpm dev`                                               | 启动 Web 应用                      |
-| `pnpm dev:renderer`                                      | 启动本地渲染器健康端点             |
-| `pnpm build`                                             | 构建全部应用和包                   |
-| `pnpm docker:renderer:up`                                | 构建并启动本地 Renderer 容器       |
-| `pnpm docker:renderer:down`                              | 停止本地 Renderer 容器             |
-| `pnpm test`                                              | 运行单元测试                       |
-| `pnpm test:e2e:web`                                      | 运行已构建 Web 的浏览器 smoke      |
-| `pnpm --filter @markdown-mint/renderer smoke:pressure`   | 运行 20 页 P95 与 100 页压力 smoke |
-| `pnpm --filter @markdown-mint/renderer smoke:pdf:visual` | 校验固定 Chromium PDF 逐页视觉基线 |
-| `pnpm typecheck`                                         | 运行全部 TypeScript 检查           |
-| `pnpm lint`                                              | 运行 ESLint                        |
-| `pnpm check`                                             | 执行提交前完整质量门禁             |
-
-## 项目文档
-
-- [产品定义与 v1.0 边界](docs/product.md)
-- [系统架构](docs/architecture.md)
-- [v1.0 开发路线图](docs/roadmap-v1.md)
-- [主题开发规范](docs/theme-authoring.md)
-- [开源软件工作流](docs/opensource-workflow.md)
-- [部署与运维](docs/deployment.md)
-- [格式参考](docs/format-reference.md)
-- [隐私说明](docs/privacy.md)
-- [服务条款（预发布草案）](docs/terms.md)
-- [迁移说明](docs/migrations.md)
-- [运维与发布演练](docs/operations-drill.md)
-- [故障排查](docs/troubleshooting.md)
-- [Beta 反馈模板](docs/beta-feedback.md)
-- [威胁模型](docs/threat-model.md)
-- [发布就绪清单](docs/release-readiness.md)
-- [第三方许可清单](docs/third-party-licenses.md)
-- [贡献指南](CONTRIBUTING.md)
-- [安全策略](SECURITY.md)
-- [治理模型](GOVERNANCE.md)
+当前版本为 **v1.0.0-rc.1 候选版**，尚未宣告稳定版。公开 API、主题协议和目录结构在 v1.0.0 前仍可能调整。具体范围与后续计划见 [产品定义](docs/product.md) 和 [v1.0 路线图](docs/roadmap-v1.md)。
 
 ## 参与贡献
 
-请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。非小型修复应先通过 Issue 对齐问题、范围和验收标准，再提交 Pull Request。
+欢迎提交 Issue 和 Pull Request。开始之前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)；非小型修复建议先通过 Issue 对齐问题、范围和验收标准。
 
-安全问题不要创建公开 Issue，请按 [SECURITY.md](SECURITY.md) 私下报告。
+安全问题请不要创建公开 Issue，请按 [SECURITY.md](SECURITY.md) 私下报告。
 
 ## License
 

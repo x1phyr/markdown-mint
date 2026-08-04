@@ -155,7 +155,7 @@ async function run() {
     }
     await page.getByRole("button", { name: "下一步" }).first().click();
     await page.getByRole("button", { name: "下一步" }).last().click();
-    await page.getByRole("button", { name: "生成" }).click();
+    await page.getByRole("button", { name: "生成文档", exact: true }).click();
     await page
       .locator("#result-title")
       .waitFor({ state: "visible", timeout: exportResultTimeoutMs });
