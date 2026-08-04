@@ -1,10 +1,9 @@
 # 迁移说明
 
-## 当前版本：`v1.0.0-rc.1`
+## 当前版本：`v1.0.0`
 
-项目处于 release candidate 阶段。在 `v1.0.0` 稳定版前，不承诺公开 API、`ExportRequest`、
-`CompiledDocument` 或 Theme Manifest 在 minor 版本之间保持兼容；每次破坏性调整都必须同步更新
-schema、测试 fixture、CHANGELOG 和文档。
+自 `v1.0.0` 起，公开 API、`ExportRequest`、`CompiledDocument` 与 Theme Manifest 按语义化版本演进；
+破坏性调整进入新的主版本，并同步更新 schema、测试 fixture、CHANGELOG 和文档。
 
 当前导出协议的关键边界是：
 

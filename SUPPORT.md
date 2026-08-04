@@ -1,6 +1,6 @@
 # Support
 
-MarkdownMint 目前是 `v1.0.0-rc.1` 候选版开源项目，不提供商业支持或响应 SLA。
+MarkdownMint 目前是 `v1.0.0` 开源项目，不提供商业支持或响应 SLA。
 
 - 使用问题和故障排查：创建 GitHub Discussion（启用后）；
 - 可复现缺陷：使用 Bug Report 模板；

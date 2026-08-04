@@ -38,7 +38,7 @@ base64 字符串放在 `source.assets[].bytes`。生产环境建议设置
 自动生成；不要把生产密钥提交到仓库。
 
 `v1.0.0` canary 部署完成后，把 Web/Renderer URL、镜像 digest、runtime manifest SHA256、一次真实导出的
-request ID/trace ID 和产物 hash 记录到 [RC 发布记录](release-signoff.md#下一步行动清单)，再启动
+request ID/trace ID 和产物 hash 记录到 [发布记录](release-signoff.md#发布后跟进)，再启动
 连续 72 小时观察窗口。
 
 Render 的 Web 服务必须监听 `0.0.0.0`，本项目通过 `HOST=0.0.0.0` 和 `PORT=4310` 完成绑定；
@@ -66,7 +66,7 @@ Web 默认请求 `http://127.0.0.1:4310`。如果只验证页面，不点击 PDF
 
 ### 当前源码构建 Docker 并启动 Renderer
 
-不要把旧的 `1.0.0-rc.1` 镜像当作本地开发入口。使用仓库提供的 Compose，它会从当前源码构建
+不要把旧的 `1.0.0-rc.1` 或过期的 release 镜像当作本地开发入口。使用仓库提供的 Compose，它会从当前源码构建
 `markdown-mint-renderer:local`，创建本地数据卷，并注入可用的开发密钥：
 
 ```bash

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+暂无未发布变更。
+
+## [1.0.0] - 2026-08-04
+
 ### Security
 
 - Upgraded Nuxt from `4.4.7` to `4.5.1` and refreshed workspace overrides (`unctx@3.0.0`, `@nuxt/cli@3.37.0`) so the security release installs cleanly.
@@ -22,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `document-schema` remains the shared server-side wire contract for export requests and job payloads; the Web client encodes assets locally and avoids importing Zod so Nitro SSR does not collide with Zod's internal `process` helper.
 - Web workflow modules split draft persistence, renderer client, i18n, and export helpers out of `app.vue`, and drafts now restore locale plus feature toggles.
 - Oversized export bodies return HTTP `413`; production-like deployments can fail closed on unsafe CORS/signing via `RENDERER_ENFORCE_SAFE_CONFIG`.
+- Stable release gates rely on automation and deploy evidence; five independent human signoff rows are no longer release blockers.
+- Deferred Dependabot major bumps for TypeScript 6 and `@types/node` 26 until after `v1.0.0` (Node runtime remains `22.22.2`).
 
 ## [1.0.0-rc.1] - 2026-08-03
 

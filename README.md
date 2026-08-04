@@ -7,7 +7,7 @@
 将 Markdown 稳定地导出为精美 PDF 与可离线打开的单文件 HTML。
 
 [![CI](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml/badge.svg)](https://github.com/x1phyr/markdown-mint/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/status-v1.0.0--rc.1-orange.svg)](CHANGELOG.md)
+[![Release](https://img.shields.io/badge/status-v1.0.0-green.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 </div>
@@ -116,7 +116,7 @@ markdown-mint/
 
 ## 项目状态
 
-当前版本为 **v1.0.0-rc.1 候选版**，尚未宣告稳定版。公开 API、主题协议和目录结构在 v1.0.0 前仍可能调整。具体范围与后续计划见 [产品定义](docs/product.md) 和 [v1.0 路线图](docs/roadmap-v1.md)。
+当前版本为 **v1.0.0**。公开 API、主题协议与目录结构按语义化版本演进；破坏性变更会进入新的主版本并附迁移说明。产品范围与后续计划见 [产品定义](docs/product.md) 和 [v1.0 路线图](docs/roadmap-v1.md)。
 
 ## 参与贡献
 

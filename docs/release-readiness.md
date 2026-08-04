@@ -1,7 +1,7 @@
 # Release readiness
 
-这份清单用于 `v1.0.0-rc.1` 候选版及后续 `v1.0.0` 稳定版。它记录可验证的门禁，也记录尚未
-满足的发布阻塞项，不把测试通过误写成生产就绪。
+这份清单记录 `v1.0.0` 稳定版的可验证门禁，以及建议在部署环境继续完成的观察项。
+自动化通过不等于线上已部署；Render canary 与 72 小时观察仍是推荐的运维跟进。
 
 ## 当前已验证
 
@@ -32,25 +32,24 @@
 - `docs/release-signoff.md` 已提供 RC 的自动化证据索引、部署/观察记录模板；不再要求五项独立人工签字。
 - 服务条款预发布草案、迁移说明和运维/发布演练手册已入库；Render canary 与 72 小时观察仍待执行。
 
-## 发布阻塞项
+## 已知限制与跟进项
 
 - 当前已具备固定 Chromium smoke 的视觉 diff、明确的 Linux 字体镜像、首页 PNG 预览、扩充后的复杂主题 fixture、复杂 fixture 的独立视觉基线和 Vivliostyle 外部 CLI 适配器；Vivliostyle 运行时等价性未完成前，不得把它宣称为 v1 默认能力；
 - fallback 仅可通过测试或显式注入启用，不能作为生产降级路径；
-- 当前候选的 GitHub hosted CI 已通过 Trivy 容器扫描、依赖审计、CodeQL 和三浏览器矩阵；生产 canary 的 72 小时 RC 观察仍需在部署后完成；
-- RC feature freeze 期间暂不合并 Dependabot major bumps：`#2` TypeScript `6.0.3` 当前 typecheck 失败；`#4` `@types/node` `26.1.2` 虽通过自动化检查，但不匹配 Node `22.22.2` 运行时类型目标；
+- 当前候选的 GitHub hosted CI 已通过 Trivy 容器扫描、依赖审计、CodeQL 和三浏览器矩阵；Render canary 与 72 小时观察建议在 tag 后完成；
+- 暂不合并 Dependabot major bumps：`#2` TypeScript `6.0.3` 当前 typecheck 失败；`#4` `@types/node` `26.1.2` 虽通过自动化检查，但不匹配 Node `22.22.2` 运行时类型目标；
 - Chromium runtime 的实际 revision/sha256、镜像内第三方 notices、字体包版本现在已有机器校验清单；
 - `RENDERER_DATA_DIR` 文件存储是单实例恢复契约，不应直接当作高可用任务队列或托管数据库。
 
-## 下一步行动清单
+## 发布后跟进
 
-稳定版 `v1.0.0` 在以下项目关闭后即可推进。证据记入 [release-signoff.md](release-signoff.md)；排版/安全/隐私/无障碍/运维不再要求独立人工签字，以既有自动化门禁与仓库文档为准。
+`v1.0.0` 标签以自动化门禁与维护者确认发布。下列项目是部署环境的推荐跟进，不再阻塞 tag：
 
-| 顺序 | 待关闭事项                                                                                                                                                             | 关闭标准                                                                                                                   |
+| 顺序 | 待办事项                                                                                                                                                               | 完成标准                                                                                                                   |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | 1    | 按 [deployment.md](deployment.md#render-首次部署) 和 [render.yaml](../render.yaml) 创建 Render Blueprint canary，填入 Web/Renderer 互相匹配的 URL、CORS 与下载签名密钥 | Web `/`、Renderer `/health` 和一次真实 PDF/HTML 导出均通过；记录服务 URL、镜像 digest、request ID/trace ID 和导出产物 hash |
-| 2    | canary 健康后启动连续 72 小时 RC 观察窗口                                                                                                                              | 写明开始/结束时间、监控来源、P0/P1/P2 事件、回滚是否触发；若发生 P0/P1 或未解释稳定性回归，重新开始观察窗口                |
+| 2    | canary 健康后启动连续 72 小时观察窗口                                                                                                                                  | 写明开始/结束时间、监控来源、P0/P1/P2 事件、回滚是否触发；若发生 P0/P1 或未解释稳定性回归，重新开始观察窗口                |
 | 3    | 核对 Dependabot advisory 与本地/CI 审计结果                                                                                                                            | 本地 `pnpm audit` 当前为 0 vulnerabilities，但 GitHub advisory 数可能不同；以 GitHub 列表为准写明已修复、不适用或接受风险  |
-| 4    | Vivliostyle runtime 等价性说明                                                                                                                                         | 完成 opt-in CLI 与默认 Chromium 等价性验收并记录证据；若未完成，稳定版说明不得把 Vivliostyle 宣称为 v1 默认能力            |
+| 4    | Vivliostyle runtime 等价性说明                                                                                                                                         | 默认 PDF 路径仍是 Playwright Chromium；稳定版说明不得把未完成等价性验收的 Vivliostyle 宣称为 v1 默认能力                   |
 
-在以上项目关闭前，不应创建稳定版 `v1.0.0` 标签，也不应把 fallback PDF 样张标记为最终排版样张。`v1.0.0-rc.1`
-只能作为明确标注的 prerelease，用于获取真实部署和观察证据。
+不得把 fallback PDF 样张标记为最终排版样张。

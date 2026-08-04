@@ -14,7 +14,7 @@ services:
       - key: PORT
         value: "4310"
       - key: RENDERER_VERSION
-        value: 1.0.0-rc.1
+        value: 1.0.0
       - key: RENDERER_DATA_DIR
         value: /tmp/markdown-mint
       - key: RENDERER_DOWNLOAD_SIGNING_TTL_SECONDS
