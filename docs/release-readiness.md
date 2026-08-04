@@ -39,6 +39,7 @@
 - 当前已具备固定 Chromium smoke 的视觉 diff、明确的 Linux 字体镜像、首页 PNG 预览、扩充后的复杂主题 fixture、复杂 fixture 的独立视觉基线和 Vivliostyle 外部 CLI 适配器，但 Vivliostyle 运行时等价性和跨平台人工打印验收尚未完成；
 - fallback 仅可通过测试或显式注入启用，不能作为生产降级路径；
 - 当前候选的 GitHub hosted CI 已通过 Trivy 容器扫描、依赖审计、CodeQL 和三浏览器矩阵；生产 canary 的 72 小时 RC 观察仍需在发布后完成；
+- RC feature freeze 期间暂不合并 Dependabot major bumps：`#2` TypeScript `6.0.3` 当前 typecheck 失败；`#4` `@types/node` `26.1.2` 虽通过自动化检查，但不匹配 Node `22.22.2` 运行时类型目标；
 - Chromium runtime 的实际 revision/sha256、镜像内第三方 notices、字体包版本现在已有机器校验清单，但再分发许可和最终发布负责人签字仍未完成；
 - 生产产物保留参数、持久卷加密与备份/回滚演练、签名密钥托管和跨实例部署策略需要部署环境参与；
   `RENDERER_DATA_DIR` 文件存储是单实例恢复契约，不应直接当作高可用任务队列或托管数据库。
