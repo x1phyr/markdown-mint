@@ -13,7 +13,7 @@ import { resolve, join } from "node:path";
 
 import {
   exportRequestSchema,
-  type DocumentAsset,
+  toWireExportRequest,
   type ExportRequest,
 } from "@markdown-mint/document-schema";
 import type { ExportArtifact, ExportJob, ExportJobState, ExportStageLog } from "./jobs.js";
@@ -23,7 +23,6 @@ const JOB_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const TRACE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
-const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
 const JOB_STATES: readonly ExportJobState[] = [
   "cancelled",
   "compiling",
@@ -268,28 +267,7 @@ function assertBytesMatch(bytes: Uint8Array, expectedSha256: string, expectedSiz
 }
 
 function deserializeRequest(value: unknown): ExportRequest | undefined {
-  if (!isRecord(value) || !isRecord(value.source) || !Array.isArray(value.source.assets)) {
-    return undefined;
-  }
-  const assets: DocumentAsset[] = [];
-  for (const candidate of value.source.assets) {
-    if (!isRecord(candidate) || typeof candidate.bytes !== "string") return undefined;
-    if (!BASE64_PATTERN.test(candidate.bytes)) return undefined;
-    const bytes = new Uint8Array(Buffer.from(candidate.bytes, "base64"));
-    assets.push({
-      bytes,
-      mediaType: candidate.mediaType as string,
-      path: candidate.path as string,
-    });
-  }
-
-  const result = exportRequestSchema.safeParse({
-    ...value,
-    source: {
-      ...value.source,
-      assets,
-    },
-  });
+  const result = exportRequestSchema.safeParse(value);
   return result.success ? result.data : undefined;
 }
 
@@ -425,21 +403,7 @@ function parseJob(value: unknown): ExportJob | undefined {
 }
 
 function serializeRequest(request: ExportRequest): SerializedExportRequest {
-  return {
-    appearance: request.appearance,
-    document: request.document,
-    features: request.features,
-    output: request.output,
-    page: request.page,
-    source: {
-      assets: request.source.assets.map((asset) => ({
-        bytes: Buffer.from(asset.bytes).toString("base64"),
-        mediaType: asset.mediaType,
-        path: asset.path,
-      })),
-      markdown: request.source.markdown,
-    },
-  };
+  return toWireExportRequest(request);
 }
 
 function readVerifiedBytes(

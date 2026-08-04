@@ -13,6 +13,11 @@ Render 上创建两个服务：
 `RENDERER_CORS_ORIGIN` 只允许 Web 服务来源。零成本预览部署会把 Renderer 的任务元数据、
 PDF/HTML 和缩略图写入实例的临时文件系统，服务重启后数据会丢失。
 
+Renderer 默认最多同时执行 2 个导出任务、最多排队 20 个（含执行中）。可用
+`RENDERER_MAX_CONCURRENT` 与 `RENDERER_MAX_QUEUED` 调整。本地图片资产在 JSON API 中以
+base64 字符串放在 `source.assets[].bytes`。生产环境建议设置
+`RENDERER_ENFORCE_SAFE_CONFIG=1`（或依赖 `NODE_ENV=production`），强制显式 CORS 与下载签名密钥。
+
 根目录的 [render.yaml](../render.yaml) 已声明这两个服务：Renderer 使用
 `apps/renderer/Dockerfile`，Web 使用 Nuxt Node 运行时；两个服务默认部署在 Singapore，并且都明确
 使用 `free` 计划。这样 Blueprint 不会因为省略 `plan` 而创建默认的付费 `starter` 实例，也不会创建

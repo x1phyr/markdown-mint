@@ -58,8 +58,107 @@ describe("renderer HTTP API", () => {
         headers: { "content-type": "application/json", "idempotency-key": "too-large" },
         method: "POST",
       });
-      expect(oversized.status).toBe(400);
+      expect(oversized.status).toBe(413);
       expect((await oversized.json()).error).toBe("request-too-large");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("accepts base64-encoded local image assets over HTTP", async () => {
+    const png = new Uint8Array(24);
+    png.set([137, 80, 78, 71, 13, 10, 26, 10]);
+    png[19] = 2;
+    png[23] = 2;
+    const manager = new ExportJobManager();
+    const server = createRendererServer(manager);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server did not bind");
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const submitted = await fetch(`${baseUrl}/v1/exports`, {
+        body: JSON.stringify({
+          ...request(),
+          source: {
+            assets: [
+              {
+                bytes: Buffer.from(png).toString("base64"),
+                mediaType: "image/png",
+                path: "cover.png",
+              },
+            ],
+            markdown: "# Offline HTML\n\n![Cover](./cover.png)",
+          },
+        }),
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "http-assets",
+        },
+        method: "POST",
+      });
+      expect(submitted.status).toBe(202);
+      const job = (await submitted.json()) as { id: string };
+      await manager.waitFor(job.id);
+
+      const artifact = await fetch(`${baseUrl}/v1/exports/${job.id}/artifact`);
+      expect(artifact.status).toBe(200);
+      const html = await artifact.text();
+      expect(html).toContain("data:image/png;base64,");
+      expect(html).not.toContain("./cover.png");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("rejects overloaded submissions with a capacity response", async () => {
+    const manager = new ExportJobManager({
+      compiler: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        return {
+          compilerVersion: "0.1.0",
+          diagnostics: [],
+          html: "<h1>Busy</h1>",
+          messages: [],
+          metadata: { language: "en", title: "Busy" },
+          protocol: "markdown-mint/compiled-document",
+          resourceManifest: { entries: [], totalBytes: 0 },
+          resources: [],
+          toc: [],
+          version: 1,
+        };
+      },
+      maxConcurrent: 1,
+      maxQueued: 1,
+    });
+    const server = createRendererServer(manager);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server did not bind");
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const first = await fetch(`${baseUrl}/v1/exports`, {
+        body: JSON.stringify(request()),
+        headers: { "content-type": "application/json", "idempotency-key": "capacity-1" },
+        method: "POST",
+      });
+      expect(first.status).toBe(202);
+      const firstJob = (await first.json()) as { id: string };
+
+      const second = await fetch(`${baseUrl}/v1/exports`, {
+        body: JSON.stringify(request()),
+        headers: { "content-type": "application/json", "idempotency-key": "capacity-2" },
+        method: "POST",
+      });
+      expect(second.status).toBe(503);
+      expect((await second.json()).error).toBe("capacity");
+      await manager.waitFor(firstJob.id);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
