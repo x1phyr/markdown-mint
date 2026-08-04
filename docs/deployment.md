@@ -38,7 +38,7 @@ base64 字符串放在 `source.assets[].bytes`。生产环境建议设置
 自动生成；不要把生产密钥提交到仓库。
 
 `v1.0.0` canary 部署完成后，把 Web/Renderer URL、镜像 digest、runtime manifest SHA256、一次真实导出的
-request ID/trace ID 和产物 hash 记录到 [RC 发布签字单](release-signoff.md#下一步签字行动清单)，再启动
+request ID/trace ID 和产物 hash 记录到 [RC 发布记录](release-signoff.md#下一步行动清单)，再启动
 连续 72 小时观察窗口。
 
 Render 的 Web 服务必须监听 `0.0.0.0`，本项目通过 `HOST=0.0.0.0` 和 `PORT=4310` 完成绑定；
