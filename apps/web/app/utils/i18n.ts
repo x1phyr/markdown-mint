@@ -3,10 +3,14 @@ import type { Locale } from "./export-types";
 export type WorkflowCopy = {
   accent: string;
   attachImages: string;
+  attachImagesBrowse: string;
+  attachImagesFormats: string;
+  attachImagesHint: string;
   attachedImages: string;
   back: string;
   browse: string;
   cancel: string;
+  clearAttachedImages: string;
   clearDraft: string;
   configure: string;
   configureHint: string;
@@ -35,6 +39,7 @@ export type WorkflowCopy = {
   paste: string;
   preview: string;
   regenerate: string;
+  removeAttachedImage: string;
   reset: string;
   result: string;
   resultHint: string;
@@ -60,10 +65,15 @@ export function workflowCopy(locale: Locale): WorkflowCopy {
     return {
       accent: "Accent",
       attachImages: "Attach local images",
+      attachImagesBrowse: "Choose images",
+      attachImagesFormats: "PNG, JPEG, GIF, WebP, or SVG · up to 8 MiB each",
+      attachImagesHint:
+        "If the Markdown references files like ./photo.png, attach those images here so export can embed them.",
       attachedImages: "Attached images",
       back: "Back",
       browse: "Choose a .md file",
       cancel: "Cancel export",
+      clearAttachedImages: "Clear all",
       clearDraft: "Clear local draft",
       configure: "Configure",
       configureHint: "Set document metadata, page geometry, and output options.",
@@ -95,6 +105,7 @@ export function workflowCopy(locale: Locale): WorkflowCopy {
       paste: "Paste Markdown",
       preview: "Theme preview",
       regenerate: "Retry export",
+      removeAttachedImage: "Remove",
       reset: "Start over",
       result: "Result",
       resultHint: "Your artifact is ready. Download it or switch format and export again.",
@@ -120,10 +131,15 @@ export function workflowCopy(locale: Locale): WorkflowCopy {
   return {
     accent: "强调色",
     attachImages: "附加本地图片",
+    attachImagesBrowse: "选择图片",
+    attachImagesFormats: "支持 PNG、JPEG、GIF、WebP、SVG，单张不超过 8 MiB",
+    attachImagesHint:
+      "若 Markdown 引用了 ./photo.png 这类本地路径，请在此附加对应图片，导出时才能嵌入。",
     attachedImages: "已附加图片",
     back: "返回",
     browse: "选择 .md 文件",
     cancel: "取消生成",
+    clearAttachedImages: "全部清除",
     clearDraft: "清除本地草稿",
     configure: "配置",
     configureHint: "设置文档信息、页面尺寸和输出选项。",
@@ -153,6 +169,7 @@ export function workflowCopy(locale: Locale): WorkflowCopy {
     paste: "粘贴 Markdown",
     preview: "主题预览",
     regenerate: "重试生成",
+    removeAttachedImage: "移除",
     reset: "重新开始",
     result: "结果",
     resultHint: "产物已经准备好。你可以下载，或切换格式后重新生成。",

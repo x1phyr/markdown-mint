@@ -208,8 +208,25 @@ function onFileChange(event: Event): void {
 }
 
 function onImageChange(event: Event): void {
-  const files = (event.target as HTMLInputElement).files;
+  const input = event.target as HTMLInputElement;
+  const files = input.files;
   if (files?.length) void readImageFiles(files);
+  input.value = "";
+}
+
+function removeAttachedAsset(path: string): void {
+  attachedAssets.value = attachedAssets.value.filter((asset) => asset.path !== path);
+}
+
+function clearAttachedAssets(): void {
+  attachedAssets.value = [];
+}
+
+function formatAssetSize(bytes: Uint8Array): string {
+  const size = bytes.byteLength;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function onDrop(event: DragEvent): void {
@@ -537,21 +554,52 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <div class="pastebox" style="margin-top: 1rem">
-              <label for="image-assets">{{ copy.attachImages }}</label>
-              <input
-                id="image-assets"
-                type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.png,.jpg,.jpeg,.gif,.webp,.svg"
-                multiple
-                @change="onImageChange"
-              />
-              <div v-if="attachedAssets.length" class="pastebox-footer">
-                <span
-                  >{{ copy.attachedImages }}:
-                  {{ attachedAssets.map((asset) => asset.path).join(", ") }}</span
+            <div class="asset-attach">
+              <div class="asset-attach-heading">
+                <div>
+                  <p class="asset-attach-label">{{ copy.attachImages }}</p>
+                  <p class="asset-attach-hint">{{ copy.attachImagesHint }}</p>
+                </div>
+                <button
+                  v-if="attachedAssets.length"
+                  class="button button--quiet button--compact"
+                  type="button"
+                  @click="clearAttachedAssets"
                 >
+                  {{ copy.clearAttachedImages }}
+                </button>
               </div>
+              <label class="asset-dropzone" for="image-assets">
+                <span class="asset-dropzone-icon" aria-hidden="true">⧉</span>
+                <span class="asset-dropzone-copy">
+                  <strong>{{ copy.attachImagesBrowse }}</strong>
+                  <span>{{ copy.attachImagesFormats }}</span>
+                </span>
+                <input
+                  id="image-assets"
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.png,.jpg,.jpeg,.gif,.webp,.svg"
+                  multiple
+                  @change="onImageChange"
+                />
+              </label>
+              <ul v-if="attachedAssets.length" class="asset-list" :aria-label="copy.attachedImages">
+                <li v-for="asset in attachedAssets" :key="asset.path" class="asset-chip">
+                  <span class="asset-chip-icon" aria-hidden="true">▣</span>
+                  <span class="asset-chip-meta">
+                    <span class="asset-chip-name">{{ asset.path }}</span>
+                    <span class="asset-chip-size">{{ formatAssetSize(asset.bytes) }}</span>
+                  </span>
+                  <button
+                    class="asset-chip-remove"
+                    type="button"
+                    :aria-label="`${copy.removeAttachedImage} ${asset.path}`"
+                    @click="removeAttachedAsset(asset.path)"
+                  >
+                    ×
+                  </button>
+                </li>
+              </ul>
             </div>
 
             <div class="summary-card" aria-live="polite">
