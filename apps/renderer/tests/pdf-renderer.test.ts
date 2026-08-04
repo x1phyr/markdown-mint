@@ -9,6 +9,8 @@ import {
   createChromiumPdfRenderer,
   createChromiumThumbnailRenderer,
   createPdfDocumentHtml,
+  createPdfThumbnailCss,
+  createPdfThumbnailHtml,
 } from "../src/pdf-renderer.js";
 import { PdfRendererError } from "../src/pdf-renderer.js";
 
@@ -117,6 +119,15 @@ describe("Chromium PDF renderer", () => {
     expect(fallbackHtml).not.toContain("not-provided.png");
   });
 
+  it("pads thumbnail preview CSS to the selected page margin", () => {
+    expect(createPdfThumbnailCss("18mm")).toContain("padding: 18mm");
+    expect(createPdfThumbnailCss("12mm")).toContain("min-height: calc(100vh - (12mm * 2))");
+    const html = createPdfThumbnailHtml(input());
+    expect(html).toContain("data-mm-thumbnail-padding");
+    expect(html).toContain("padding: 18mm");
+    expect(html.indexOf("data-mm-thumbnail-padding")).toBeLessThan(html.indexOf("</head>"));
+  });
+
   it("renders through an isolated browser context and reports page count", async () => {
     const routeDecisions: string[] = [];
     const page = {
@@ -149,6 +160,8 @@ describe("Chromium PDF renderer", () => {
     expect(result.pageCount).toBe(1);
     expect(result.bytes.byteLength).toBeGreaterThan(0);
     expect(result.thumbnail).toEqual(new Uint8Array(Buffer.from("thumbnail")));
+    expect(page.setContent).toHaveBeenCalledTimes(2);
+    expect(page.setContent.mock.calls[1]?.[0]).toContain("data-mm-thumbnail-padding");
     expect(page.screenshot).toHaveBeenCalledWith({
       animations: "disabled",
       fullPage: false,
@@ -171,6 +184,14 @@ describe("Chromium PDF renderer", () => {
         printBackground: true,
       }),
     );
+    const pdfOptions = page.pdf.mock.calls[0]?.[0] as {
+      footerTemplate: string;
+      headerTemplate: string;
+    };
+    expect(pdfOptions.headerTemplate).toContain("padding:0 18mm");
+    expect(pdfOptions.headerTemplate).toContain("height:18mm");
+    expect(pdfOptions.footerTemplate).toContain("padding:0 18mm");
+    expect(pdfOptions.footerTemplate).toContain("height:18mm");
     expect(routeDecisions).toEqual([
       "continue:data:text/plain,ok",
       "abort:https://unexpected.example/blocked",
@@ -414,6 +435,7 @@ describe("Chromium PDF renderer", () => {
     const renderer = createChromiumThumbnailRenderer({ browserFactory: async () => browser });
 
     await expect(renderer(input())).resolves.toEqual(new Uint8Array(Buffer.from("thumbnail")));
+    expect(page.setContent.mock.calls[0]?.[0]).toContain("data-mm-thumbnail-padding");
     expect(routeDecisions).toEqual([
       "continue:blob:preview",
       "abort:https://unexpected.example/blocked",

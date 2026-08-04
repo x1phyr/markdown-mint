@@ -43,6 +43,49 @@ const PAGE_MARGINS = {
 
 const EMPTY_PAGE_TEMPLATE = "<span></span>";
 
+function pageMargin(input: PdfRenderInput): string {
+  return PAGE_MARGINS[input.request.page.margin];
+}
+
+/**
+ * Chromium header/footer templates paint in the full page width and ignore
+ * Playwright/`@page` margins, so the template itself must repeat the inset.
+ * Height + flex centering keeps chrome mid-margin instead of flush to the edge.
+ */
+function pageTemplate(left: string, right: string, margin: string): string {
+  return `<div style="align-items:center;box-sizing:border-box;color:#6b7169;display:flex;font-family:'Liberation Sans',Arial,sans-serif;font-size:8px;height:${margin};justify-content:space-between;margin:0;padding:0 ${margin};width:100%;"><span>${left}</span><span>${right}</span></div>`;
+}
+
+/**
+ * Screenshots ignore CSS `@page` margins. Pad the print viewport so the
+ * result-page preview matches the PDF content inset.
+ */
+export function createPdfThumbnailCss(margin: string): string {
+  return `html {
+  margin: 0;
+  padding: 0;
+}
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: ${margin};
+}
+.mm-document .mm-cover {
+  min-height: calc(100vh - (${margin} * 2));
+}`;
+}
+
+/**
+ * Builds the print document used for first-page previews. Playwright's
+ * `addStyleTag` requires JavaScript, which the PDF sandbox disables, so the
+ * padding stylesheet is inlined into the HTML instead.
+ */
+export function createPdfThumbnailHtml(input: PdfRenderInput): string {
+  const html = createPdfDocumentHtml(input);
+  const style = `<style data-mm-thumbnail-padding>${createPdfThumbnailCss(pageMargin(input))}</style>`;
+  return html.includes("</head>") ? html.replace("</head>", `${style}</head>`) : `${style}${html}`;
+}
+
 function normalizedAssetPath(path: string): string {
   return path.replaceAll("\\", "/").replace(/^\.\//u, "");
 }
@@ -152,12 +195,8 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#039;");
 }
 
-function pageTemplate(left: string, right: string): string {
-  return `<div style="align-items:center;color:#6b7169;display:flex;font-family:'Liberation Sans',Arial,sans-serif;font-size:8px;justify-content:space-between;width:100%;">${left}<span>${right}</span></div>`;
-}
-
 function pdfHeaderTemplate(input: PdfRenderInput): string {
-  return pageTemplate(escapeHtml(input.title), "");
+  return pageTemplate(escapeHtml(input.title), "", pageMargin(input));
 }
 
 function pdfFooterTemplate(input: PdfRenderInput): string {
@@ -166,7 +205,7 @@ function pdfFooterTemplate(input: PdfRenderInput): string {
   const right = input.request.features.pageNumber
     ? '<span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>'
     : "";
-  return pageTemplate(left, right);
+  return pageTemplate(left, right, pageMargin(input));
 }
 
 export function createPdfDocumentHtml(input: PdfRenderInput): string {
@@ -299,6 +338,7 @@ export function createChromiumPdfRenderer(options: ChromiumPdfRendererOptions = 
         input.request.features.pageNumber ||
         (input.request.features.footer &&
           Boolean(input.compiled.metadata.author ?? input.request.document.author));
+      const margin = pageMargin(input);
       const pdf = await page.pdf({
         ...(showHeader || showFooter ? { displayHeaderFooter: true } : {}),
         ...(showHeader ? { headerTemplate: pdfHeaderTemplate(input) } : {}),
@@ -308,10 +348,10 @@ export function createChromiumPdfRenderer(options: ChromiumPdfRendererOptions = 
         format: input.request.page.size,
         landscape: input.request.page.orientation === "landscape",
         margin: {
-          bottom: PAGE_MARGINS[input.request.page.margin],
-          left: PAGE_MARGINS[input.request.page.margin],
-          right: PAGE_MARGINS[input.request.page.margin],
-          top: PAGE_MARGINS[input.request.page.margin],
+          bottom: margin,
+          left: margin,
+          right: margin,
+          top: margin,
         },
         preferCSSPageSize: true,
         printBackground: true,
@@ -326,6 +366,8 @@ export function createChromiumPdfRenderer(options: ChromiumPdfRendererOptions = 
         );
       }
       try {
+        await page.setContent(createPdfThumbnailHtml(input), { waitUntil: "load" });
+        await page.emulateMedia({ media: "print" });
         const thumbnail = new Uint8Array(
           await page.screenshot({ animations: "disabled", fullPage: false, type: "png" }),
         );
@@ -400,7 +442,7 @@ export function createChromiumThumbnailRenderer(
           await route.abort("blockedbyclient");
         }
       });
-      await page.setContent(createPdfDocumentHtml(input), { waitUntil: "load" });
+      await page.setContent(createPdfThumbnailHtml(input), { waitUntil: "load" });
       await page.emulateMedia({ media: "print" });
       const bytes = new Uint8Array(
         await page.screenshot({ animations: "disabled", fullPage: false, type: "png" }),
