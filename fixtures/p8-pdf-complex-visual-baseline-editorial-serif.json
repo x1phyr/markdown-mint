@@ -33,7 +33,7 @@
     },
     {
       "file": "page-8.png",
-      "sha256": "aea3459b286a088a59154a63bf1b0922f5f768349ca60c1e7406015faa54190e"
+      "sha256": "c6628453ea343502fdc45e6376d430c150d48456e1fa3a8a0aa20c23c98a05c9"
     }
   ],
   "renderer": "playwright-chromium"

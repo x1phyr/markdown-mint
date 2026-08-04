@@ -29,11 +29,11 @@
     },
     {
       "file": "page-7.png",
-      "sha256": "fbb9d99beec6fc548a7b203b37521716f1194fba1547fa5c89bb2b11ff8e2635"
+      "sha256": "2c6d1a67a01d8cb70f9db45c7bcf172ab9fbfe884846de06550a49607df56a6a"
     },
     {
       "file": "page-8.png",
-      "sha256": "8c370ea57e9e2a95601334faee0ee28761009ec85c1cc5bbc5472dc165c3c255"
+      "sha256": "173482347e3100ac8f116a42a3a6ef234f8f6480d64f0d972206f8718e9e622e"
     }
   ],
   "renderer": "playwright-chromium"
