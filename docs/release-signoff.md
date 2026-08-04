@@ -57,6 +57,32 @@
 
 当前不能代签的原因：跨平台打印样张、法务批准、人工读屏记录、生产回滚演练或 72 小时生产观察数据必须来自相应负责人和真实部署环境。
 
+## 下一步签字行动清单
+
+以下项目用于把当前 RC 阻塞项关闭到稳定版 `v1.0.0`。负责人完成后，在相应行补充日期/签名、证据链接和
+“批准 / 不批准 / 带条件批准”结论；不要把候选版自动化结果改写成人工批准。
+
+1. **部署负责人：执行 Render Blueprint canary。** 按
+   [部署与运维](deployment.md#render-首次部署) 使用根目录 [render.yaml](../render.yaml) 创建或更新
+   Web + Renderer 服务，确认 `NUXT_PUBLIC_RENDERER_URL`、`RENDERER_CORS_ORIGIN` 和
+   `RENDERER_DOWNLOAD_SIGNING_SECRET` 均来自生产环境；记录服务 URL、镜像 digest、runtime manifest SHA256、
+   `/health` 结果、一次真实导出的 request ID/trace ID、PDF/HTML/thumbnail hash。
+2. **发布负责人 + 运维负责人：启动并完成 72 小时 RC 观察。** 只在 canary 健康和真实导出通过后开始计时；
+   记录窗口开始/结束时间、监控来源、P0/P1/P2 事件、回滚是否触发和是否需要重置窗口。
+3. **打印复核人：补齐跨平台打印签字。** 至少保留 Linux 与 macOS/Windows 打印链路的设备/OS/打印机型号、
+   PDF SHA256、样张照片、页眉/页脚/页码/中文字体/公式/图表/宽表格/分页结论。
+4. **安全评审人：补齐安全签字与 advisory 处置。** 复核威胁模型、资源策略、日志脱敏、密钥托管和开放漏洞；
+   对 GitHub Dependabot advisory 逐项补充“已修复 / 不适用 / 接受风险”及理由。本地 `pnpm audit` 当前报告
+   0 vulnerabilities，但它不等同于 GitHub advisory 队列清零。
+5. **隐私 / 法务负责人：补齐许可和字体再分发批准。** 服务条款、隐私、第三方许可、字体 redistribution、
+   备份生命周期和数据处理结论必须由 owner 签字；自动生成的 third-party notices 只能作为证据输入。
+6. **无障碍复核人：补齐人工 a11y 记录。** 基于 E8 自动化结果执行键盘、焦点和读屏复核，记录环境、步骤、
+   发现的问题和 P0/P1 是否为 0。
+7. **运维负责人：补齐生产运维演练。** 记录持久卷加密、备份 ACL、恢复/回滚、磁盘耗尽、签名 key custody、
+   密钥轮换和单实例限制；在跨实例协调方案完成前，`RENDERER_DATA_DIR` 不得被描述为多实例安全队列。
+8. **Renderer 负责人：关闭 Vivliostyle runtime 等价性。** 完成 opt-in CLI 与默认 Chromium 的等价性验收并
+   附证据；若未完成，稳定版发布说明必须继续把 Vivliostyle 标为未完成/非 v1 支持能力。
+
 ## RC 观察结论
 
 - 观察窗口状态：未开始；必须在 release tag 和生产 canary 成功后启动连续 72 小时窗口。
