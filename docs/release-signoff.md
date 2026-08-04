@@ -63,6 +63,7 @@
 - 观察期间的 P0/P1 事故与处理：暂无观察数据；Render canary 启动后按 [operations-drill.md](operations-drill.md) 记录 request ID、trace ID、镜像 digest 和处理时间，不记录 Markdown 正文或密钥。
 - 未解释的稳定性回归：当前自动化门禁未发现；生产观察尚未验证。
 - 未关闭的 P2 及其发布影响：GitHub push 提示默认分支存在 20 个 Dependabot advisory（2 high、11 moderate、7 low）；本 PR 的 dependency-review、pnpm audit 和 Trivy 均通过，但发布负责人仍需确认这些 advisory 是否影响 release scope，并记录风险接受或修复计划。
+- Dependabot major bump 决定：`#2` TypeScript `5.9.3` -> `6.0.3` 在本地 `pnpm typecheck` 中失败（`packages/theme-sdk` 缺少 Node ambient types）；`#4` `@types/node` `22.19.13` -> `26.1.2` 通过 `pnpm check`，但与当前 Node `22.22.2` 运行时类型目标不一致。两者均延后到 `v1.0.0` 后处理，RC 期间接受保留当前版本的风险。
 - 是否重新开始 72 小时观察窗口：否；当前没有已开始或需重置的生产观察窗口。
 
 ## 发布决定
