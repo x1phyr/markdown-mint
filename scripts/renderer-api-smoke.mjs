@@ -8,7 +8,18 @@ const input = {
   features: { cover: true, footer: true, header: true, pageNumber: true, toc: true },
   output: { format: "pdf" },
   page: { margin: "normal", orientation: "portrait", size: "A4" },
-  source: { assets: [], markdown: "# Renderer API smoke\n\nA real container export." },
+  source: {
+    assets: [
+      {
+        bytes: Buffer.from([
+          137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2,
+        ]).toString("base64"),
+        mediaType: "image/png",
+        path: "smoke.png",
+      },
+    ],
+    markdown: "# Renderer API smoke\n\n![Smoke](./smoke.png)\n\nA real container export.",
+  },
 };
 
 function assert(condition, message) {

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { createDownloadPath, verifyDownloadSignature, type DownloadKind } from "./downloads.js";
 import { createHealthPayload } from "./health.js";
-import { ExportJobManager, type ExportJob } from "./jobs.js";
+import { ExportJobManager, JobError, type ExportJob } from "./jobs.js";
 
 const port = Number.parseInt(process.env.PORT ?? "4310", 10);
 const host = process.env.HOST ?? "127.0.0.1";
@@ -76,10 +76,27 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
 }
 
 function errorCode(error: unknown): string {
+  if (error instanceof JobError) return error.code;
   if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
     return error.code;
   }
   return "invalid-request";
+}
+
+function statusForError(code: string): number {
+  switch (code) {
+    case "capacity":
+      return 503;
+    case "idempotency-conflict":
+      return 409;
+    case "request-too-large":
+      return 413;
+    case "idempotency-key":
+    case "invalid-request":
+      return 400;
+    default:
+      return 400;
+  }
 }
 
 function createDefaultManager(): ExportJobManager {
@@ -129,6 +146,23 @@ function configuredRetentionSweep(options: RendererServerOptions): number {
     return options.retentionSweepMs;
   }
   return configuredInteger(process.env.RENDERER_RETENTION_SWEEP_MS, 60_000, 3_600_000);
+}
+
+function assertSafeProductionConfig(downloadSigningSecret: string | undefined): void {
+  const enforce =
+    process.env.RENDERER_ENFORCE_SAFE_CONFIG === "1" ||
+    (process.env.NODE_ENV === "production" && process.env.RENDERER_ENFORCE_SAFE_CONFIG !== "0");
+  if (!enforce) return;
+  if (corsOrigin === "*") {
+    throw new Error(
+      "RENDERER_CORS_ORIGIN must be set to an explicit origin when RENDERER_ENFORCE_SAFE_CONFIG is enabled.",
+    );
+  }
+  if (!downloadSigningSecret) {
+    throw new Error(
+      "RENDERER_DOWNLOAD_SIGNING_SECRET is required when RENDERER_ENFORCE_SAFE_CONFIG is enabled.",
+    );
+  }
 }
 
 function withDownloadLinks(
@@ -181,6 +215,7 @@ export function createRendererServer(
   options: RendererServerOptions = {},
 ) {
   const downloadSigningSecret = configuredDownloadSecret(options);
+  assertSafeProductionConfig(downloadSigningSecret);
   const downloadSigningTtlSeconds = configuredDownloadTtl(options);
   const retentionSweepMs = configuredRetentionSweep(options);
   const now = options.now ?? Date.now;
@@ -217,12 +252,18 @@ export function createRendererServer(
           requestId,
         );
       } catch (error) {
+        const code = errorCode(error);
         sendJson(
           response,
-          400,
+          statusForError(code),
           {
-            error: errorCode(error),
-            message: "Export request was rejected.",
+            error: code,
+            message:
+              error instanceof JobError
+                ? error.message
+                : code === "request-too-large"
+                  ? "Export request exceeded the maximum body size."
+                  : "Export request was rejected.",
           },
           requestId,
         );
@@ -267,19 +308,32 @@ export function createRendererServer(
       }
 
       if (request.method === "POST" && segments[3] === "retry") {
-        const job = manager.retry(jobId);
-        if (!job) sendJson(response, 404, { error: "not_found" }, requestId);
-        else
+        try {
+          const job = manager.retry(jobId);
+          if (!job) sendJson(response, 404, { error: "not_found" }, requestId);
+          else
+            sendJson(
+              response,
+              202,
+              withDownloadLinks(job, {
+                now,
+                secret: downloadSigningSecret,
+                ttlSeconds: downloadSigningTtlSeconds,
+              }),
+              requestId,
+            );
+        } catch (error) {
+          const code = errorCode(error);
           sendJson(
             response,
-            202,
-            withDownloadLinks(job, {
-              now,
-              secret: downloadSigningSecret,
-              ttlSeconds: downloadSigningTtlSeconds,
-            }),
+            statusForError(code),
+            {
+              error: code,
+              message: error instanceof JobError ? error.message : "Retry was rejected.",
+            },
             requestId,
           );
+        }
         return;
       }
 

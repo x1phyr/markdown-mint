@@ -269,8 +269,14 @@ export function createChromiumPdfRenderer(options: ChromiumPdfRendererOptions = 
 
   const renderer: PdfRenderer = async (input) => {
     let context: BrowserContext | undefined;
+    const onAbort = (): void => {
+      void closeContext(context);
+    };
+    input.signal?.addEventListener("abort", onAbort, { once: true });
     try {
+      throwIfAborted(input.signal);
       const browser = await getBrowser();
+      throwIfAborted(input.signal);
       context = await browser.newContext({
         javaScriptEnabled: false,
         serviceWorkers: "block",
@@ -287,6 +293,7 @@ export function createChromiumPdfRenderer(options: ChromiumPdfRendererOptions = 
       });
       await page.setContent(createPdfDocumentHtml(input), { waitUntil: "load" });
       await page.emulateMedia({ media: "print" });
+      throwIfAborted(input.signal);
       const showHeader = input.request.features.header;
       const showFooter =
         input.request.features.pageNumber ||
@@ -309,6 +316,7 @@ export function createChromiumPdfRenderer(options: ChromiumPdfRendererOptions = 
         preferCSSPageSize: true,
         printBackground: true,
       });
+      throwIfAborted(input.signal);
       const bytes = new Uint8Array(pdf);
       const pageCount = countPdfPages(bytes);
       if (bytes.byteLength === 0 || pageCount < 1) {
@@ -322,15 +330,18 @@ export function createChromiumPdfRenderer(options: ChromiumPdfRendererOptions = 
           await page.screenshot({ animations: "disabled", fullPage: false, type: "png" }),
         );
         if (thumbnail.byteLength > 0) return { bytes, pageCount, thumbnail };
-      } catch {
+      } catch (error) {
+        if (isAbortError(error) || input.signal?.aborted) throwIfAborted(input.signal);
         // The preview is progressive enhancement; a valid PDF must remain downloadable.
       }
       return { bytes, pageCount };
     } catch (error) {
+      if (isAbortError(error) || input.signal?.aborted) throwIfAborted(input.signal);
       if (error instanceof PdfRendererError) throw error;
       const reason = error instanceof Error ? error.message : "Unknown PDF rendering error.";
       throw new PdfRendererError("pdf-renderer-failed", `Chromium PDF rendering failed. ${reason}`);
     } finally {
+      input.signal?.removeEventListener("abort", onAbort);
       await closeContext(context);
     }
   };
@@ -408,4 +419,20 @@ export function createChromiumThumbnailRenderer(
   };
 
   return renderer;
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (!signal?.aborted) return;
+  const error = new Error("PDF rendering was aborted.");
+  error.name = "AbortError";
+  throw error;
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof Error && error.name === "AbortError") ||
+    (typeof DOMException !== "undefined" &&
+      error instanceof DOMException &&
+      error.name === "AbortError")
+  );
 }

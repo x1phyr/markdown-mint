@@ -6,64 +6,28 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 
 import { launchThemeDetails, launchThemes } from "@markdown-mint/themes";
 
+import { createRendererClient } from "./utils/export-api";
+import {
+  deleteDraft,
+  openDraftDatabase,
+  readDraft,
+  writeDraft,
+  type DraftRecord,
+} from "./utils/draft-store";
+import {
+  formatBytes,
+  guessImageMediaType,
+  newIdempotencyKey,
+  stateLabel,
+  toWireAssets,
+  type AttachedAsset,
+  type JobStatus,
+  type Locale,
+  type OutputFormat,
+  type Step,
+} from "./utils/export-types";
+import { workflowCopy } from "./utils/i18n";
 import { summarizeMarkdown, type MarkdownDiagnosticSummary } from "./utils/markdown-summary";
-
-type Locale = "zh-CN" | "en";
-type OutputFormat = "html" | "pdf";
-type Step = "configure" | "generate" | "import" | "result" | "theme";
-
-interface JobArtifact {
-  fileName: string;
-  format: OutputFormat;
-  mediaType: string;
-  pageCount?: number;
-  sha256: string;
-  sizeBytes: number;
-  thumbnail?: {
-    fileName: string;
-    mediaType: "image/png";
-    sha256: string;
-    sizeBytes: number;
-  };
-}
-
-interface JobLog {
-  durationMs?: number;
-  finishedAt?: number;
-  stage: string;
-  startedAt: number;
-}
-
-interface JobStatus {
-  artifact?: JobArtifact;
-  attempt: number;
-  diagnostics: Array<{ level: string; message: string; rule: string }>;
-  error?: { code: string; message: string };
-  id: string;
-  logs: JobLog[];
-  state: string;
-  downloads?: {
-    artifactUrl?: string;
-    expiresAt?: number;
-    thumbnailUrl?: string;
-  };
-}
-
-interface DraftRecord {
-  accentColor: string;
-  author: string;
-  fileName: string;
-  id: "active";
-  markdown: string;
-  margin: "compact" | "normal" | "relaxed";
-  orientation: "landscape" | "portrait";
-  outputFormat: OutputFormat;
-  pageSize: "A4" | "Letter";
-  selectedThemeId: string;
-  subtitle: string;
-  title: string;
-  updatedAt: number;
-}
 
 const SAMPLE_MARKDOWN = `---
 title: MarkdownMint sample document
@@ -110,6 +74,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }));
 const step = ref<Step>("import");
 const markdown = ref("");
 const fileName = ref("");
+const attachedAssets = ref<AttachedAsset[]>([]);
 const isDragging = ref(false);
 const importError = ref("");
 const selectedThemeId = ref("technical-mint");
@@ -155,126 +120,13 @@ const canContinueImport = computed(
   () => markdown.value.trim().length > 0 && blockingDiagnostics.value.length === 0,
 );
 const activeStepIndex = computed(() => steps.value.findIndex((item) => item.id === step.value));
+const copy = computed(() => workflowCopy(locale.value));
 const draftStatus = computed(() => {
   if (!draftSavedAt.value) return copy.value.draftNotSaved;
   return `${copy.value.draftSaved} ${new Intl.DateTimeFormat(locale.value, {
     hour: "2-digit",
     minute: "2-digit",
   }).format(draftSavedAt.value)}`;
-});
-
-const copy = computed(() => {
-  if (locale.value === "en") {
-    return {
-      accent: "Accent",
-      back: "Back",
-      browse: "Choose a .md file",
-      cancel: "Cancel export",
-      clearDraft: "Clear local draft",
-      configure: "Configure",
-      configureHint: "Set document metadata, page geometry, and output options.",
-      continue: "Continue",
-      draftNotSaved: "Draft is not saved yet",
-      draftSaved: "Draft saved",
-      drop: "Drop Markdown here",
-      error: "Something needs attention",
-      exportAnother: "Export another format",
-      generate: "Generate",
-      generateHint: "The renderer compiles and packages the selected format in an isolated job.",
-      generating: "Generating artifact",
-      heroKicker: "Markdown publishing studio",
-      heroLead:
-        "Bring finished Markdown to the last mile: a considered theme, predictable pages, and a file you can share.",
-      heroTitle: "Documents worth handing over.",
-      importHint:
-        "Upload, drop, paste, or load the sample. The browser only creates a lightweight preflight summary.",
-      importTitle: "1. Import Markdown",
-      language: "Language",
-      loadSample: "Load sample",
-      margin: "Margins",
-      noDocument: "No document loaded",
-      noRenderer:
-        "The renderer is not reachable. Start apps/renderer or configure NUXT_PUBLIC_RENDERER_URL.",
-      orientation: "Orientation",
-      pageNumber: "Page numbers",
-      pageSize: "Page size",
-      paste: "Paste Markdown",
-      preview: "Theme preview",
-      regenerate: "Retry export",
-      reset: "Start over",
-      result: "Result",
-      resultHint: "Your artifact is ready. Download it or switch format and export again.",
-      saveHint: "Drafts stay in this browser and are never sent until you generate.",
-      selectTheme: "Select a theme",
-      selectThemeHint:
-        "All launch themes consume the same compiled document and support HTML and PDF.",
-      startExport: "Generate artifact",
-      subtitle: "Subtitle",
-      tableOfContents: "Table of contents",
-      theme: "Theme",
-      themeHint: "Choose the visual language before setting the final page details.",
-      title: "Title",
-      toc: "TOC",
-      upload: "Import",
-      words: "words",
-      headings: "headings",
-      images: "images",
-      codeBlocks: "code blocks",
-    };
-  }
-  return {
-    accent: "强调色",
-    back: "返回",
-    browse: "选择 .md 文件",
-    cancel: "取消生成",
-    clearDraft: "清除本地草稿",
-    configure: "配置",
-    configureHint: "设置文档信息、页面尺寸和输出选项。",
-    continue: "下一步",
-    draftNotSaved: "草稿尚未保存",
-    draftSaved: "草稿已保存",
-    drop: "将 Markdown 拖到这里",
-    error: "需要处理的问题",
-    exportAnother: "导出另一种格式",
-    generate: "生成",
-    generateHint: "渲染器会在隔离任务中编译并打包选定格式。",
-    generating: "正在生成产物",
-    heroKicker: "Markdown 出版工作台",
-    heroLead:
-      "把写好的 Markdown 推到最后一公里：选择合适的主题，生成稳定的页面，并得到可以交付的文件。",
-    heroTitle: "值得交付的文档。",
-    importHint: "上传、拖放、粘贴或载入示例。浏览器只做轻量预检，完整编译在你点击生成后执行。",
-    importTitle: "1. 导入 Markdown",
-    language: "语言",
-    loadSample: "载入示例",
-    margin: "页边距",
-    noDocument: "还没有导入文档",
-    noRenderer: "无法连接渲染器。请启动 apps/renderer，或配置 NUXT_PUBLIC_RENDERER_URL。",
-    orientation: "方向",
-    pageNumber: "页码",
-    pageSize: "页面尺寸",
-    paste: "粘贴 Markdown",
-    preview: "主题预览",
-    regenerate: "重试生成",
-    reset: "重新开始",
-    result: "结果",
-    resultHint: "产物已经准备好。你可以下载，或切换格式后重新生成。",
-    saveHint: "草稿只保存在当前浏览器中，点击生成前不会发送。",
-    selectTheme: "选择主题",
-    selectThemeHint: "三套首发主题消费同一份编译文档，并同时支持 HTML 与 PDF。",
-    startExport: "生成文档",
-    subtitle: "副标题",
-    tableOfContents: "目录",
-    theme: "主题",
-    themeHint: "先选择视觉语言，再设置最终页面细节。",
-    title: "标题",
-    toc: "目录",
-    upload: "导入",
-    words: "字词",
-    headings: "标题",
-    images: "图片",
-    codeBlocks: "代码块",
-  };
 });
 
 const steps = computed(() => [
@@ -285,19 +137,10 @@ const steps = computed(() => [
   { id: "result" as const, label: copy.value.result },
 ]);
 
+const renderer = createRendererClient(() => rendererUrl.value);
+
 let pollController: AbortController | undefined;
 let draftDb: IDBDatabase | undefined;
-
-function rendererEndpoint(path: string): string {
-  if (/^https?:\/\//u.test(path)) return path;
-  return `${rendererUrl.value.replace(/\/+$/u, "")}${path}`;
-}
-
-function jobDownloadEndpoint(nextJob: JobStatus, kind: "artifact" | "thumbnail"): string {
-  const path =
-    kind === "artifact" ? nextJob.downloads?.artifactUrl : nextJob.downloads?.thumbnailUrl;
-  return rendererEndpoint(path ?? `/v1/exports/${nextJob.id}/${kind}`);
-}
 
 function clearThumbnail(): void {
   if (thumbnailUrl.value) URL.revokeObjectURL(thumbnailUrl.value);
@@ -308,16 +151,11 @@ async function loadThumbnail(nextJob: JobStatus): Promise<void> {
   clearThumbnail();
   if (!nextJob.artifact?.thumbnail) return;
   try {
-    const response = await fetch(jobDownloadEndpoint(nextJob, "thumbnail"));
-    if (!response.ok) return;
-    thumbnailUrl.value = URL.createObjectURL(await response.blob());
+    const blob = await renderer.fetchBlob(nextJob, "thumbnail");
+    thumbnailUrl.value = URL.createObjectURL(blob);
   } catch {
     // A thumbnail is a progressive enhancement; the download remains available.
   }
-}
-
-function newIdempotencyKey(): string {
-  return `web-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 }
 
 function setStep(next: Step): void {
@@ -348,15 +186,41 @@ async function readMarkdownFile(file: File): Promise<void> {
   if (!documentForm.title) documentForm.title = file.name.replace(/\.(?:md|markdown)$/iu, "");
 }
 
+async function readImageFiles(files: FileList | File[]): Promise<void> {
+  const next = [...attachedAssets.value];
+  for (const file of Array.from(files)) {
+    const mediaType = file.type || guessImageMediaType(file.name);
+    if (!mediaType?.startsWith("image/")) continue;
+    if (file.size > 8 * 1024 * 1024) continue;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const path = file.name.replace(/^.*[/\\]/u, "");
+    const existing = next.findIndex((asset) => asset.path === path);
+    const asset = { bytes, mediaType, path };
+    if (existing >= 0) next[existing] = asset;
+    else next.push(asset);
+  }
+  attachedAssets.value = next.slice(0, 32);
+}
+
 function onFileChange(event: Event): void {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) void readMarkdownFile(file);
 }
 
+function onImageChange(event: Event): void {
+  const files = (event.target as HTMLInputElement).files;
+  if (files?.length) void readImageFiles(files);
+}
+
 function onDrop(event: DragEvent): void {
   isDragging.value = false;
-  const file = event.dataTransfer?.files?.[0];
-  if (file) void readMarkdownFile(file);
+  const files = event.dataTransfer?.files;
+  if (!files?.length) return;
+  const markdownFile = Array.from(files).find(
+    (file) => /\.(?:md|markdown)$/iu.test(file.name) || file.type.includes("markdown"),
+  );
+  if (markdownFile) void readMarkdownFile(markdownFile);
+  void readImageFiles(files);
 }
 
 function loadSample(): void {
@@ -368,26 +232,11 @@ function loadSample(): void {
   documentForm.author = "MarkdownMint";
 }
 
-function openDraftDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open("markdown-mint", 1);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore("drafts", { keyPath: "id" });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("indexeddb-open-failed"));
-  });
-}
-
 async function loadDraft(): Promise<void> {
   if (!window.indexedDB) return;
   try {
     draftDb = await openDraftDatabase();
-    const request = draftDb.transaction("drafts", "readonly").objectStore("drafts").get("active");
-    const draft = await new Promise<DraftRecord | undefined>((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result as DraftRecord | undefined);
-      request.onerror = () => reject(request.error ?? new Error("indexeddb-read-failed"));
-    });
+    const draft = await readDraft(draftDb);
     if (!draft) return;
     markdown.value = draft.markdown;
     fileName.value = draft.fileName;
@@ -400,6 +249,8 @@ async function loadDraft(): Promise<void> {
     documentForm.author = draft.author;
     documentForm.subtitle = draft.subtitle;
     documentForm.title = draft.title;
+    if (draft.locale === "en" || draft.locale === "zh-CN") locale.value = draft.locale;
+    if (draft.features) Object.assign(features, draft.features);
     draftSavedAt.value = draft.updatedAt;
   } catch {
     draftDb = undefined;
@@ -411,8 +262,10 @@ async function saveDraft(): Promise<void> {
   const record: DraftRecord = {
     accentColor: accentColor.value,
     author: documentForm.author,
+    features: { ...features },
     fileName: fileName.value,
     id: "active",
+    locale: locale.value,
     markdown: markdown.value,
     margin: margin.value,
     orientation: orientation.value,
@@ -424,12 +277,7 @@ async function saveDraft(): Promise<void> {
     updatedAt: Date.now(),
   };
   try {
-    const transaction = draftDb.transaction("drafts", "readwrite");
-    transaction.objectStore("drafts").put(record);
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error ?? new Error("indexeddb-write-failed"));
-    });
+    await writeDraft(draftDb, record);
     draftSavedAt.value = record.updatedAt;
   } catch {
     // A draft is a convenience; a storage failure must not block exporting.
@@ -439,12 +287,7 @@ async function saveDraft(): Promise<void> {
 async function clearDraft(): Promise<void> {
   if (!draftDb) return;
   try {
-    const transaction = draftDb.transaction("drafts", "readwrite");
-    transaction.objectStore("drafts").delete("active");
-    await new Promise<void>((resolve) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => resolve();
-    });
+    await deleteDraft(draftDb);
     draftSavedAt.value = null;
   } catch {
     // The visible workflow can continue even if IndexedDB is unavailable.
@@ -472,7 +315,10 @@ function createExportRequest(): Record<string, unknown> {
       orientation: orientation.value,
       size: pageSize.value,
     },
-    source: { assets: [], markdown: markdown.value },
+    source: {
+      assets: toWireAssets(attachedAssets.value),
+      markdown: markdown.value,
+    },
   };
 }
 
@@ -488,16 +334,7 @@ async function submitExport(): Promise<void> {
   clearThumbnail();
   idempotencyKey.value = newIdempotencyKey();
   try {
-    const response = await fetch(rendererEndpoint("/v1/exports"), {
-      body: JSON.stringify(createExportRequest()),
-      headers: {
-        "content-type": "application/json",
-        "idempotency-key": idempotencyKey.value,
-      },
-      method: "POST",
-    });
-    if (!response.ok) throw new Error(`submit-${response.status}`);
-    job.value = (await response.json()) as JobStatus;
+    job.value = await renderer.submitExport(createExportRequest(), idempotencyKey.value);
     await pollJob(job.value.id);
   } catch (error) {
     isSubmitting.value = false;
@@ -508,28 +345,19 @@ async function submitExport(): Promise<void> {
 async function pollJob(jobId: string): Promise<void> {
   pollController?.abort();
   pollController = new AbortController();
-  while (true) {
-    const response = await fetch(rendererEndpoint(`/v1/exports/${jobId}`), {
-      signal: pollController.signal,
-    });
-    if (!response.ok) throw new Error(`poll-${response.status}`);
-    const nextJob = (await response.json()) as JobStatus;
-    job.value = nextJob;
-    if (["cancelled", "expired", "failed", "succeeded"].includes(nextJob.state)) {
-      isSubmitting.value = false;
-      step.value = nextJob.state === "succeeded" ? "result" : "generate";
-      if (nextJob.state === "succeeded") await loadThumbnail(nextJob);
-      else clearThumbnail();
-      return;
-    }
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
-  }
+  const nextJob = await renderer.pollJob(jobId, pollController.signal, (update) => {
+    job.value = update;
+  });
+  isSubmitting.value = false;
+  step.value = nextJob.state === "succeeded" ? "result" : "generate";
+  if (nextJob.state === "succeeded") await loadThumbnail(nextJob);
+  else clearThumbnail();
 }
 
 async function cancelExport(): Promise<void> {
   if (!job.value) return;
   try {
-    await fetch(rendererEndpoint(`/v1/exports/${job.value.id}/cancel`), { method: "POST" });
+    await renderer.cancelExport(job.value.id);
   } catch {
     workflowError.value = copy.value.error;
   }
@@ -541,11 +369,7 @@ async function retryExport(): Promise<void> {
   clearThumbnail();
   isSubmitting.value = true;
   try {
-    const response = await fetch(rendererEndpoint(`/v1/exports/${job.value.id}/retry`), {
-      method: "POST",
-    });
-    if (!response.ok) throw new Error(`retry-${response.status}`);
-    job.value = (await response.json()) as JobStatus;
+    job.value = await renderer.retryExport(job.value.id);
     await pollJob(job.value.id);
   } catch {
     isSubmitting.value = false;
@@ -556,9 +380,7 @@ async function retryExport(): Promise<void> {
 async function downloadArtifact(): Promise<void> {
   if (!job.value?.artifact) return;
   try {
-    const response = await fetch(jobDownloadEndpoint(job.value, "artifact"));
-    if (!response.ok) throw new Error(`artifact-${response.status}`);
-    const blob = await response.blob();
+    const blob = await renderer.fetchBlob(job.value, "artifact");
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -583,40 +405,12 @@ function startOver(): void {
   step.value = "import";
 }
 
-function stateLabel(state: string): string {
-  const labels: Record<string, string> =
-    locale.value === "en"
-      ? {
-          cancelled: "Cancelled",
-          compiling: "Compiling",
-          expired: "Expired",
-          failed: "Failed",
-          packaging: "Packaging",
-          queued: "Queued",
-          rendering: "Rendering",
-          succeeded: "Ready",
-        }
-      : {
-          cancelled: "已取消",
-          compiling: "编译中",
-          expired: "已过期",
-          failed: "失败",
-          packaging: "打包中",
-          queued: "排队中",
-          rendering: "渲染中",
-          succeeded: "已完成",
-        };
-  return labels[state] ?? state;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function formatDiagnostic(diagnostic: MarkdownDiagnosticSummary): string {
   return `${diagnostic.level === "error" ? "×" : "!"} ${diagnostic.message}`;
+}
+
+function labeledState(state: string): string {
+  return stateLabel(state, locale.value);
 }
 
 watch(
@@ -629,6 +423,7 @@ watch(
     orientation,
     margin,
     accentColor,
+    locale,
     () => JSON.stringify(documentForm),
     () => JSON.stringify(features),
   ],
@@ -739,6 +534,23 @@ onBeforeUnmount(() => {
                     {{ copy.loadSample }}
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <div class="pastebox" style="margin-top: 1rem">
+              <label for="image-assets">{{ copy.attachImages }}</label>
+              <input
+                id="image-assets"
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.png,.jpg,.jpeg,.gif,.webp,.svg"
+                multiple
+                @change="onImageChange"
+              />
+              <div v-if="attachedAssets.length" class="pastebox-footer">
+                <span
+                  >{{ copy.attachedImages }}:
+                  {{ attachedAssets.map((asset) => asset.path).join(", ") }}</span
+                >
               </div>
             </div>
 
@@ -964,7 +776,7 @@ onBeforeUnmount(() => {
             <p class="panel-lede">{{ copy.generateHint }}</p>
             <div class="job-status-card">
               <div class="job-status-line">
-                <strong>{{ job ? stateLabel(job.state) : stateLabel("queued") }}</strong
+                <strong>{{ job ? labeledState(job.state) : labeledState("queued") }}</strong
                 ><span>{{ job?.id || "—" }}</span>
               </div>
               <div class="progress-track">
@@ -979,7 +791,7 @@ onBeforeUnmount(() => {
               </div>
               <ol v-if="job?.logs.length" class="stage-list">
                 <li v-for="log in job.logs" :key="`${log.stage}-${log.startedAt}`">
-                  <span>{{ stateLabel(log.stage) }}</span
+                  <span>{{ labeledState(log.stage) }}</span
                   ><small>{{ log.durationMs ? `${log.durationMs} ms` : "…" }}</small>
                 </li>
               </ol>

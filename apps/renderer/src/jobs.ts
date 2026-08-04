@@ -8,7 +8,11 @@ import {
   type CompiledDocument,
   type CompileOptions,
 } from "@markdown-mint/compiler";
-import { exportRequestSchema, type ExportRequest } from "@markdown-mint/document-schema";
+import {
+  exportRequestSchema,
+  toWireExportRequest,
+  type ExportRequest,
+} from "@markdown-mint/document-schema";
 import { createDocumentBodyHtml, createStandaloneHtml } from "@markdown-mint/html-exporter";
 import { createThemeCss, validateThemeBundle } from "@markdown-mint/theme-runtime";
 import { launchThemeBundles } from "@markdown-mint/themes";
@@ -94,6 +98,7 @@ export interface PdfRenderInput {
   compiled: CompiledDocument;
   css: string;
   request: ExportRequest;
+  signal?: AbortSignal;
   title: string;
   workspaceDir?: string;
 }
@@ -101,6 +106,10 @@ export interface PdfRenderInput {
 export interface ExportJobManagerOptions {
   compiler?: (markdown: string, options?: CompileOptions) => Promise<CompiledDocument>;
   maxAttempts?: number;
+  /** Maximum simultaneously executing jobs (compiling/rendering/packaging). */
+  maxConcurrent?: number;
+  /** Maximum jobs that may be queued or running before submit returns capacity. */
+  maxQueued?: number;
   now?: () => number;
   pdfRenderer?: PdfRenderer;
   retentionMs?: number;
@@ -111,7 +120,7 @@ export interface ExportJobManagerOptions {
   timeoutMs?: number;
 }
 
-class JobError extends Error {
+export class JobError extends Error {
   constructor(
     public readonly code: string,
     message: string,
@@ -122,13 +131,23 @@ class JobError extends Error {
 }
 
 interface InternalExportJob extends ExportJob {
+  abortController?: AbortController;
   cancelRequested: boolean;
   request: ExportRequest;
+  requestFingerprint: string;
   timeoutRequested: boolean;
 }
 
+const ACTIVE_STATES: readonly ExportJobState[] = ["queued", "compiling", "rendering", "packaging"];
+
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function fingerprintRequest(request: ExportRequest): string {
+  return createHash("sha256")
+    .update(JSON.stringify(toWireExportRequest(request)))
+    .digest("hex");
 }
 
 function escapePdfText(value: string): string {
@@ -186,13 +205,25 @@ function copyJob(job: InternalExportJob): ExportJob {
   };
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof Error && error.name === "AbortError") ||
+    (typeof DOMException !== "undefined" &&
+      error instanceof DOMException &&
+      error.name === "AbortError")
+  );
+}
+
 export class ExportJobManager {
   private readonly compiler: NonNullable<ExportJobManagerOptions["compiler"]>;
   private readonly jobs = new Map<string, InternalExportJob>();
   private readonly artifacts = new Map<string, Uint8Array>();
   private readonly thumbnails = new Map<string, Uint8Array>();
   private readonly idempotency = new Map<string, string>();
+  private readonly running = new Set<string>();
   private readonly maxAttempts: number;
+  private readonly maxConcurrent: number;
+  private readonly maxQueued: number;
   private readonly now: () => number;
   private readonly pdfRenderer: NonNullable<ExportJobManagerOptions["pdfRenderer"]>;
   private readonly retentionMs: number;
@@ -204,6 +235,14 @@ export class ExportJobManager {
   constructor(options: ExportJobManagerOptions = {}) {
     this.compiler = options.compiler ?? compileMarkdown;
     this.maxAttempts = options.maxAttempts ?? 2;
+    this.maxConcurrent = Math.max(
+      1,
+      options.maxConcurrent ?? configuredEnvInt("RENDERER_MAX_CONCURRENT", 2, 32),
+    );
+    this.maxQueued = Math.max(
+      this.maxConcurrent,
+      options.maxQueued ?? configuredEnvInt("RENDERER_MAX_QUEUED", 20, 200),
+    );
     this.now = options.now ?? Date.now;
     this.pdfRenderer =
       options.pdfRenderer ??
@@ -232,10 +271,26 @@ export class ExportJobManager {
 
     const key = idempotencyKey.trim();
     if (!key) throw new JobError("idempotency-key", "An idempotency key is required.");
+    const requestFingerprint = fingerprintRequest(parsed.data);
     const existingId = this.idempotency.get(key);
     if (existingId) {
       const existing = this.jobs.get(existingId);
-      if (existing) return copyJob(existing);
+      if (existing) {
+        if (existing.requestFingerprint !== requestFingerprint) {
+          throw new JobError(
+            "idempotency-conflict",
+            "Idempotency key was reused with a different export request.",
+          );
+        }
+        return copyJob(existing);
+      }
+    }
+
+    if (this.activeJobCount() >= this.maxQueued) {
+      throw new JobError(
+        "capacity",
+        "The renderer is at capacity. Retry after an in-flight export finishes.",
+      );
     }
 
     const timestamp = this.now();
@@ -248,6 +303,7 @@ export class ExportJobManager {
       idempotencyKey: key,
       logs: [],
       request: parsed.data,
+      requestFingerprint,
       state: "queued",
       traceId: normalizeTraceId(traceId),
       timeoutRequested: false,
@@ -256,7 +312,7 @@ export class ExportJobManager {
     this.storage.save({ job: copyJob(job), request: job.request });
     this.jobs.set(job.id, job);
     this.idempotency.set(key, job.id);
-    void this.execute(job);
+    this.schedule();
     return copyJob(job);
   }
 
@@ -281,9 +337,12 @@ export class ExportJobManager {
     if (job.state === "queued") {
       this.transition(job, "cancelled");
       job.cancelRequested = true;
+      job.abortController?.abort();
       this.safePersist(job);
+      this.schedule();
     } else if (!["cancelled", "expired", "failed", "succeeded"].includes(job.state)) {
       job.cancelRequested = true;
+      job.abortController?.abort();
     }
     return copyJob(job);
   }
@@ -293,16 +352,23 @@ export class ExportJobManager {
     if (!job || !["cancelled", "failed"].includes(job.state) || job.attempt >= this.maxAttempts) {
       return job ? copyJob(job) : undefined;
     }
+    if (this.activeJobCount() >= this.maxQueued) {
+      throw new JobError(
+        "capacity",
+        "The renderer is at capacity. Retry after an in-flight export finishes.",
+      );
+    }
     job.attempt += 1;
     job.cancelRequested = false;
     delete job.error;
     delete job.artifact;
+    delete job.abortController;
     job.timeoutRequested = false;
     this.artifacts.delete(job.id);
     this.thumbnails.delete(job.id);
     this.transition(job, "queued");
     this.safePersist(job);
-    void this.execute(job);
+    this.schedule();
     return copyJob(job);
   }
 
@@ -341,6 +407,26 @@ export class ExportJobManager {
 
   async close(): Promise<void> {
     await this.pdfRenderer.close?.();
+  }
+
+  private activeJobCount(): number {
+    let count = 0;
+    for (const job of this.jobs.values()) {
+      if (ACTIVE_STATES.includes(job.state)) count += 1;
+    }
+    return count;
+  }
+
+  private schedule(): void {
+    for (const job of this.jobs.values()) {
+      if (this.running.size >= this.maxConcurrent) return;
+      if (job.state !== "queued" || this.running.has(job.id)) continue;
+      this.running.add(job.id);
+      void this.execute(job).finally(() => {
+        this.running.delete(job.id);
+        this.schedule();
+      });
+    }
   }
 
   private transition(job: InternalExportJob, state: ExportJobState): void {
@@ -409,6 +495,7 @@ export class ExportJobManager {
         ...record.job,
         cancelRequested: false,
         request: record.request,
+        requestFingerprint: fingerprintRequest(record.request),
         timeoutRequested: false,
       };
       this.jobs.set(job.id, job);
@@ -420,8 +507,8 @@ export class ExportJobManager {
       job.state = "queued";
       job.updatedAt = this.now();
       this.persist(job);
-      void this.execute(job);
     }
+    this.schedule();
   }
 
   private safePersist(job: InternalExportJob): void {
@@ -433,9 +520,19 @@ export class ExportJobManager {
   }
 
   private async execute(job: InternalExportJob): Promise<void> {
+    if (job.state !== "queued") return;
+    if (job.cancelRequested) {
+      this.transition(job, "cancelled");
+      this.safePersist(job);
+      return;
+    }
+
+    const abortController = new AbortController();
+    job.abortController = abortController;
     const timeout = setTimeout(() => {
       job.timeoutRequested = true;
       job.cancelRequested = true;
+      abortController.abort();
     }, this.timeoutMs);
     let workspaceDir: string | undefined;
 
@@ -447,6 +544,7 @@ export class ExportJobManager {
         codeTheme: job.request.appearance.codeTheme,
         resolveResources: true,
         resourcePolicy: { allowRemote: false },
+        signal: abortController.signal,
       });
       job.diagnostics = compiled.diagnostics;
       this.ensureActive(job);
@@ -515,6 +613,7 @@ export class ExportJobManager {
           compiled,
           css: themed.css,
           request: job.request,
+          signal: abortController.signal,
           title,
           workspaceDir,
         });
@@ -559,11 +658,15 @@ export class ExportJobManager {
       const jobError =
         error instanceof JobError
           ? error
-          : error instanceof PdfRendererError
-            ? new JobError(error.code, error.message)
-            : error instanceof ExportStorageError
+          : isAbortError(error)
+            ? job.timeoutRequested
+              ? new JobError("timeout", "Export job exceeded its time limit.")
+              : new JobError("cancelled", "Export job was cancelled.")
+            : error instanceof PdfRendererError
               ? new JobError(error.code, error.message)
-              : new JobError("internal-error", "Export job failed.");
+              : error instanceof ExportStorageError
+                ? new JobError(error.code, error.message)
+                : new JobError("internal-error", "Export job failed.");
       if (workspaceDir) {
         await rm(workspaceDir, { force: true, recursive: true }).catch(() => undefined);
         workspaceDir = undefined;
@@ -599,10 +702,16 @@ export class ExportJobManager {
       this.safePersist(job);
     } finally {
       clearTimeout(timeout);
+      delete job.abortController;
       if (workspaceDir)
         await rm(workspaceDir, { force: true, recursive: true }).catch(() => undefined);
     }
   }
+}
+
+function configuredEnvInt(name: string, fallback: number, maximum: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= maximum ? parsed : fallback;
 }
 
 function normalizeTraceId(value: string): string {

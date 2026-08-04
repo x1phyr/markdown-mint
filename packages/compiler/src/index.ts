@@ -126,6 +126,8 @@ export interface CompileOptions {
   headingIdPrefix?: string;
   resolveResources?: boolean;
   resourcePolicy?: Partial<ResourcePolicy>;
+  /** Cooperative cancellation for long compiles (resources, Mermaid, KaTeX). */
+  signal?: AbortSignal;
 }
 
 interface MarkdownData {
@@ -1311,6 +1313,7 @@ export async function compileMarkdown(
   const source = markdown.replace(/\r\n?/gu, "\n");
 
   try {
+    throwIfAborted(options.signal);
     const processor = unified()
       .use(remarkParse)
       .use(remarkGfm)
@@ -1319,7 +1322,11 @@ export async function compileMarkdown(
     if (options.enableMath !== false) processor.use(remarkMath);
 
     processor
-      .use(() => async (tree: Root) => normalizeTree(tree, context))
+      .use(() => async (tree: Root) => {
+        throwIfAborted(options.signal);
+        await normalizeTree(tree, context);
+        throwIfAborted(options.signal);
+      })
       .use(remarkRehype, {
         clobberPrefix: "mm-footnote-",
         footnoteBackLabel: context.metadata.language.toLowerCase().startsWith("zh")
@@ -1342,6 +1349,7 @@ export async function compileMarkdown(
       path: options.filename ?? "document.md",
       value: source,
     });
+    throwIfAborted(options.signal);
 
     for (const message of file.messages) {
       const position = sourcePositionFromUnknown(message.place);
@@ -1359,6 +1367,23 @@ export async function compileMarkdown(
 
     return documentFromContext(context, String(file));
   } catch (error) {
+    if (isAbortError(error)) throw error;
     return errorDocument(context, error);
   }
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (!signal?.aborted) return;
+  const error = new Error("Compilation was aborted.");
+  error.name = "AbortError";
+  throw error;
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof Error && error.name === "AbortError") ||
+    (typeof DOMException !== "undefined" &&
+      error instanceof DOMException &&
+      error.name === "AbortError")
+  );
 }

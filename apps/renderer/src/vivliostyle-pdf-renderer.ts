@@ -142,6 +142,11 @@ export function createVivliostylePdfRenderer(
   const renderer: PdfRenderer = async (input): Promise<PdfRenderResult> => {
     let workspace: string | undefined;
     try {
+      if (input.signal?.aborted) {
+        const error = new Error("Vivliostyle PDF rendering was aborted.");
+        error.name = "AbortError";
+        throw error;
+      }
       workspace = await mkdtemp(
         join(input.workspaceDir ?? workspaceRoot, "markdown-mint-vivliostyle-"),
       );
@@ -164,6 +169,11 @@ export function createVivliostylePdfRenderer(
           timeoutMs,
         );
       } catch (error) {
+        if (input.signal?.aborted) {
+          const abortError = new Error("Vivliostyle PDF rendering was aborted.");
+          abortError.name = "AbortError";
+          throw abortError;
+        }
         const code = errorCode(error);
         if (code === "ENOENT") {
           throw new PdfRendererError(
@@ -218,6 +228,14 @@ export function createVivliostylePdfRenderer(
         ...(thumbnail && thumbnail.byteLength > 0 ? { thumbnail } : {}),
       };
     } catch (error) {
+      if (
+        (error instanceof Error && error.name === "AbortError") ||
+        (typeof DOMException !== "undefined" &&
+          error instanceof DOMException &&
+          error.name === "AbortError")
+      ) {
+        throw error;
+      }
       if (error instanceof PdfRendererError) throw error;
       const reason = error instanceof Error ? error.message : "Unknown Vivliostyle error.";
       throw new PdfRendererError(

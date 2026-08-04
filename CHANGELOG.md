@@ -6,7 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-暂无未发布变更。
+### Fixed
+
+- Export HTTP requests now accept local image assets as base64 strings (matching persistence serialization), so the browser and JSON API can deliver binary assets end-to-end.
+- Renderer admission control bounds concurrent and queued export jobs (`RENDERER_MAX_CONCURRENT`, `RENDERER_MAX_QUEUED`) and returns `503 capacity` when overloaded.
+- Export timeouts and cancellations abort in-flight compilation and PDF rendering via `AbortSignal` instead of only flipping cooperative flags.
+- Idempotency keys are bound to a request fingerprint; reusing a key with a different body returns `409 idempotency-conflict`.
+
+### Changed
+
+- `document-schema` is the shared wire contract for export requests and job payloads; Web validates job responses with Zod.
+- Web workflow modules split draft persistence, renderer client, i18n, and export helpers out of `app.vue`, and drafts now restore locale plus feature toggles.
+- Oversized export bodies return HTTP `413`; production-like deployments can fail closed on unsafe CORS/signing via `RENDERER_ENFORCE_SAFE_CONFIG`.
 
 ## [1.0.0-rc.1] - 2026-08-03
 

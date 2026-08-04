@@ -237,6 +237,81 @@ describe("ExportJobManager", () => {
     expect(manager.retry("missing")).toBeUndefined();
   });
 
+  it("rejects idempotency-key reuse with a different request body", () => {
+    const manager = new ExportJobManager({
+      compiler: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return {
+          compilerVersion: "0.1.0",
+          diagnostics: [],
+          html: "<h1>Idempotent</h1>",
+          messages: [],
+          metadata: { language: "en", title: "Idempotent" },
+          protocol: "markdown-mint/compiled-document",
+          resourceManifest: { entries: [], totalBytes: 0 },
+          resources: [],
+          toc: [],
+          version: 1,
+        } satisfies CompiledDocument;
+      },
+    });
+    manager.submit(request(), "conflict-key");
+    expect(() =>
+      manager.submit(
+        { ...request(), source: { assets: [], markdown: "# Different body" } },
+        "conflict-key",
+      ),
+    ).toThrow(/different export request/i);
+  });
+
+  it("queues work behind the concurrency limit and rejects when capacity is full", async () => {
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let started = 0;
+    const manager = new ExportJobManager({
+      compiler: async () => {
+        started += 1;
+        await gate;
+        return {
+          compilerVersion: "0.1.0",
+          diagnostics: [],
+          html: "<h1>Queued</h1>",
+          messages: [],
+          metadata: { language: "en", title: "Queued" },
+          protocol: "markdown-mint/compiled-document",
+          resourceManifest: { entries: [], totalBytes: 0 },
+          resources: [],
+          toc: [],
+          version: 1,
+        } satisfies CompiledDocument;
+      },
+      maxConcurrent: 1,
+      maxQueued: 2,
+    });
+
+    const first = manager.submit(request(), "capacity-a");
+    const second = manager.submit(
+      { ...request(), source: { assets: [], markdown: "# Second" } },
+      "capacity-b",
+    );
+    expect(() =>
+      manager.submit({ ...request(), source: { assets: [], markdown: "# Third" } }, "capacity-c"),
+    ).toThrow(/at capacity/i);
+
+    for (let attempt = 0; attempt < 50 && started === 0; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    expect(started).toBe(1);
+    expect(manager.get(second.id)?.state).toBe("queued");
+
+    release?.();
+    expect((await manager.waitFor(first.id))?.state).toBe("succeeded");
+    expect((await manager.waitFor(second.id))?.state).toBe("succeeded");
+    expect(started).toBe(2);
+  });
+
   it("surfaces theme, compiler, renderer, and override failures", async () => {
     const invalidTheme = {
       manifest: { ...launchThemeBundles[0]!.manifest, schemaVersion: 2 },
