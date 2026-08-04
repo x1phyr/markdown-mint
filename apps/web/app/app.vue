@@ -27,6 +27,12 @@ import {
   type Step,
 } from "./utils/export-types";
 import { workflowCopy } from "./utils/i18n";
+import {
+  listLocalImageRefs,
+  normalizeAssetPath,
+  resolveAttachedAssetPath,
+  unmatchedLocalImageRefs,
+} from "./utils/image-assets";
 import { summarizeMarkdown, type MarkdownDiagnosticSummary } from "./utils/markdown-summary";
 
 const SAMPLE_MARKDOWN = `---
@@ -113,6 +119,14 @@ const selectedTheme = computed(() => {
 
 const selectedThemeDetails = computed(() => selectedTheme.value?.details);
 const summary = computed(() => summarizeMarkdown(markdown.value));
+const localImageRefs = computed(() => listLocalImageRefs(markdown.value));
+const missingImageRefs = computed(() =>
+  unmatchedLocalImageRefs(
+    localImageRefs.value,
+    attachedAssets.value.map((asset) => asset.path),
+  ),
+);
+const matchedAssetPaths = computed(() => new Set(localImageRefs.value));
 const blockingDiagnostics = computed(() =>
   summary.value.diagnostics.filter((diagnostic) => diagnostic.level === "error"),
 );
@@ -193,10 +207,21 @@ async function readImageFiles(files: FileList | File[]): Promise<void> {
     if (!mediaType?.startsWith("image/")) continue;
     if (file.size > 8 * 1024 * 1024) continue;
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const path = file.name.replace(/^.*[/\\]/u, "");
+    const unmatched = unmatchedLocalImageRefs(
+      listLocalImageRefs(markdown.value),
+      next.map((asset) => asset.path),
+    );
+    const path = resolveAttachedAssetPath(file, unmatched);
+    if (!path) continue;
     const existing = next.findIndex((asset) => asset.path === path);
-    const asset = { bytes, mediaType, path };
-    if (existing >= 0) next[existing] = asset;
+    const asset: AttachedAsset = {
+      bytes,
+      id:
+        globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      mediaType,
+      path,
+    };
+    if (existing >= 0) next[existing] = { ...asset, id: next[existing]?.id ?? asset.id };
     else next.push(asset);
   }
   attachedAssets.value = next.slice(0, 32);
@@ -214,12 +239,23 @@ function onImageChange(event: Event): void {
   input.value = "";
 }
 
-function removeAttachedAsset(path: string): void {
-  attachedAssets.value = attachedAssets.value.filter((asset) => asset.path !== path);
+function removeAttachedAsset(id: string): void {
+  attachedAssets.value = attachedAssets.value.filter((asset) => asset.id !== id);
 }
 
 function clearAttachedAssets(): void {
   attachedAssets.value = [];
+}
+
+function updateAttachedAssetPath(id: string, nextPath: string): void {
+  const normalized = normalizeAssetPath(nextPath.trim());
+  if (!normalized) return;
+  const current = attachedAssets.value.find((asset) => asset.id === id);
+  if (!current || current.path === normalized) return;
+  if (attachedAssets.value.some((asset) => asset.id !== id && asset.path === normalized)) return;
+  attachedAssets.value = attachedAssets.value.map((asset) =>
+    asset.id === id ? { ...asset, path: normalized } : asset,
+  );
 }
 
 function formatAssetSize(bytes: Uint8Array): string {
@@ -583,18 +619,47 @@ onBeforeUnmount(() => {
                   @change="onImageChange"
                 />
               </label>
+              <ul
+                v-if="missingImageRefs.length"
+                class="asset-missing"
+                :aria-label="copy.attachImagesMissing"
+              >
+                <li v-for="refPath in missingImageRefs" :key="refPath">
+                  <span>{{ copy.attachImagesMissing }}</span>
+                  <code>{{ refPath }}</code>
+                </li>
+              </ul>
               <ul v-if="attachedAssets.length" class="asset-list" :aria-label="copy.attachedImages">
-                <li v-for="asset in attachedAssets" :key="asset.path" class="asset-chip">
+                <li
+                  v-for="asset in attachedAssets"
+                  :key="asset.id"
+                  class="asset-chip"
+                  :class="{ 'is-unmatched': !matchedAssetPaths.has(asset.path) }"
+                >
                   <span class="asset-chip-icon" aria-hidden="true">▣</span>
-                  <span class="asset-chip-meta">
-                    <span class="asset-chip-name">{{ asset.path }}</span>
-                    <span class="asset-chip-size">{{ formatAssetSize(asset.bytes) }}</span>
-                  </span>
+                  <label class="asset-chip-meta">
+                    <span class="visually-hidden">{{ copy.attachImagesPath }}</span>
+                    <input
+                      class="asset-chip-path"
+                      type="text"
+                      :value="asset.path"
+                      spellcheck="false"
+                      @change="
+                        updateAttachedAssetPath(asset.id, ($event.target as HTMLInputElement).value)
+                      "
+                    />
+                    <span class="asset-chip-size">
+                      {{ formatAssetSize(asset.bytes) }}
+                      <template v-if="!matchedAssetPaths.has(asset.path)">
+                        · {{ copy.attachImagesUnmatched }}
+                      </template>
+                    </span>
+                  </label>
                   <button
                     class="asset-chip-remove"
                     type="button"
                     :aria-label="`${copy.removeAttachedImage} ${asset.path}`"
-                    @click="removeAttachedAsset(asset.path)"
+                    @click="removeAttachedAsset(asset.id)"
                   >
                     ×
                   </button>

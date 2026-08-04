@@ -6,6 +6,9 @@ export type WorkflowCopy = {
   attachImagesBrowse: string;
   attachImagesFormats: string;
   attachImagesHint: string;
+  attachImagesMissing: string;
+  attachImagesPath: string;
+  attachImagesUnmatched: string;
   attachedImages: string;
   back: string;
   browse: string;
@@ -68,7 +71,10 @@ export function workflowCopy(locale: Locale): WorkflowCopy {
       attachImagesBrowse: "Choose images",
       attachImagesFormats: "PNG, JPEG, GIF, WebP, or SVG · up to 8 MiB each",
       attachImagesHint:
-        "If the Markdown references files like ./photo.png, attach those images here so export can embed them.",
+        "Paths must match the Markdown reference after dropping a leading ./. Attaching cover.png maps to ./cover.png, or to images/cover.png when that is the only unmatched reference with that file name. Edit the path on a chip if needed.",
+      attachImagesMissing: "Missing attachments",
+      attachImagesPath: "Asset path",
+      attachImagesUnmatched: "Not referenced by current Markdown",
       attachedImages: "Attached images",
       back: "Back",
       browse: "Choose a .md file",
@@ -134,7 +140,10 @@ export function workflowCopy(locale: Locale): WorkflowCopy {
     attachImagesBrowse: "选择图片",
     attachImagesFormats: "支持 PNG、JPEG、GIF、WebP、SVG，单张不超过 8 MiB",
     attachImagesHint:
-      "若 Markdown 引用了 ./photo.png 这类本地路径，请在此附加对应图片，导出时才能嵌入。",
+      "附加路径需与 Markdown 引用一致（可省略开头的 ./）。直接选择 cover.png 可匹配 ./cover.png；若文档里唯一未匹配引用是 images/cover.png，也会自动映射过去。路径不对时可在条目上修改。",
+    attachImagesMissing: "尚未匹配的引用",
+    attachImagesPath: "资源路径",
+    attachImagesUnmatched: "当前 Markdown 未引用该路径",
     attachedImages: "已附加图片",
     back: "返回",
     browse: "选择 .md 文件",

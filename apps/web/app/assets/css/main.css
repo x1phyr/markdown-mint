@@ -633,6 +633,36 @@ button:focus-visible {
   list-style: none;
 }
 
+.asset-missing {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.asset-missing li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  padding: 10px 12px;
+  color: #9a512e;
+  background: #fbf4ee;
+  border: 1px solid rgb(169 110 61 / 18%);
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.asset-missing code {
+  padding: 1px 6px;
+  color: #6b3d1f;
+  background: rgb(255 255 255 / 70%);
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
 .asset-chip {
   display: inline-flex;
   gap: 8px;
@@ -645,6 +675,10 @@ button:focus-visible {
   border-radius: 9px;
 }
 
+.asset-chip.is-unmatched {
+  border-color: rgb(169 110 61 / 35%);
+}
+
 .asset-chip-icon {
   color: #2f735f;
   font-size: 13px;
@@ -652,9 +686,30 @@ button:focus-visible {
 
 .asset-chip-meta {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  margin: 0;
+}
+
+.asset-chip-path {
+  width: min(280px, 56vw);
+  min-width: 0;
+  padding: 2px 4px;
+  color: #20211f;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.asset-chip-path:hover,
+.asset-chip-path:focus {
+  background: #f7f8f4;
+  border-color: rgb(32 33 31 / 14%);
 }
 
 .asset-chip-name {

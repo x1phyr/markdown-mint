@@ -41,6 +41,7 @@ export interface JobStatus {
 
 export interface AttachedAsset {
   bytes: Uint8Array;
+  id: string;
   mediaType: string;
   path: string;
 }
