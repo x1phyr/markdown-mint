@@ -158,14 +158,14 @@ jobs:
 
       - name: Upload PDF visual QA pages
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: renderer-pdf-visual-pages-${{ matrix.theme }}
           path: tmp/pdfs/renderer-pdf-visual-${{ matrix.theme }}
           if-no-files-found: ignore
 
       - name: Upload PDF smoke artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: renderer-pdf-smoke-${{ matrix.theme }}
           path: artifacts/${{ matrix.theme }}.*
@@ -190,14 +190,14 @@ jobs:
 
       - name: Upload complex visual QA pages
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: renderer-pdf-complex-visual-pages-${{ matrix.theme }}
           path: tmp/pdfs/renderer-pdf-complex-visual-${{ matrix.theme }}
           if-no-files-found: ignore
 
       - name: Upload complex fixture artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: renderer-pdf-complex-${{ matrix.theme }}
           path: artifacts/${{ matrix.theme }}-complex.*
