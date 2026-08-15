@@ -148,6 +148,33 @@ async function run() {
       await assertAccessible(page, path);
     }
 
+    await gotoStable(page, `${baseUrl}/?lang=zh-CN`);
+    await page.getByRole("link", { name: "主题", exact: true }).click();
+    await page.waitForURL(`${baseUrl}/themes?lang=zh-CN`);
+    if ((await page.locator("html").getAttribute("lang")) !== "zh-CN") {
+      throw new Error("Opening the theme library changed the UI language from Chinese.");
+    }
+    await page
+      .getByRole("link", { name: /查看主题详情/u })
+      .first()
+      .click();
+    await page.waitForURL(`${baseUrl}/themes/technical-mint?lang=zh-CN`);
+    if ((await page.getByRole("heading", { name: "设计优势" }).count()) !== 1) {
+      throw new Error("The Chinese theme detail page rendered non-Chinese navigation copy.");
+    }
+    await page.getByRole("link", { name: /使用此主题/u }).click();
+    await page.waitForURL(`${baseUrl}/?theme=technical-mint&lang=zh-CN`);
+    if ((await page.locator("html").getAttribute("lang")) !== "zh-CN") {
+      throw new Error("Returning from theme details changed the UI language from Chinese.");
+    }
+
+    await gotoStable(page, `${baseUrl}/?lang=en`);
+    await page.getByRole("link", { name: "Themes", exact: true }).click();
+    await page.waitForURL(`${baseUrl}/themes?lang=en`);
+    if ((await page.getByRole("heading", { name: /Three visual languages/u }).count()) !== 1) {
+      throw new Error("The English theme library did not preserve the requested locale.");
+    }
+
     await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "载入示例" }).click();
     if ((await page.locator("html").getAttribute("lang")) !== "zh-CN") {

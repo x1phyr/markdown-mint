@@ -1,7 +1,7 @@
 <!-- eslint-disable vue/html-closing-bracket-newline, vue/html-indent, vue/html-self-closing -->
 <script setup lang="ts">
 /* eslint-disable vue/html-closing-bracket-newline, vue/html-indent, vue/html-self-closing */
-import { useHead, useRoute, useRuntimeConfig } from "#imports";
+import { useHead, useRoute, useRouter, useRuntimeConfig, useState } from "#imports";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 
 import { launchThemeDetails, launchThemes } from "@markdown-mint/themes";
@@ -27,6 +27,7 @@ import {
   type Step,
 } from "./utils/export-types";
 import { workflowCopy } from "./utils/i18n";
+import { localizedHref, parseLocale } from "./utils/locale";
 import {
   listLocalImageRefs,
   normalizeAssetPath,
@@ -68,6 +69,7 @@ export const output = "ready";
 
 const config = useRuntimeConfig();
 const route = useRoute();
+const router = useRouter();
 const rendererUrl = computed(() => String(config.public.rendererUrl ?? "http://127.0.0.1:4310"));
 const baseURL = String(config.app.baseURL ?? "/");
 const basePath = baseURL.replace(/\/+$/u, "");
@@ -75,7 +77,14 @@ const isHome = computed(
   () => route.path === "/" || route.path === basePath || route.path === `${basePath}/`,
 );
 
-const locale = ref<Locale>("zh-CN");
+const requestedLocale = parseLocale(route.query.lang);
+const requestedThemeId =
+  typeof route.query.theme === "string" &&
+  launchThemes.some((theme) => theme.id === route.query.theme)
+    ? route.query.theme
+    : undefined;
+const locale = useState<Locale>("app-locale", () => requestedLocale ?? "zh-CN");
+if (requestedLocale) locale.value = requestedLocale;
 useHead(() => ({ htmlAttrs: { lang: locale.value } }));
 const step = ref<Step>("import");
 const markdown = ref("");
@@ -83,7 +92,7 @@ const fileName = ref("");
 const attachedAssets = ref<AttachedAsset[]>([]);
 const isDragging = ref(false);
 const importError = ref("");
-const selectedThemeId = ref("technical-mint");
+const selectedThemeId = ref(requestedThemeId ?? "technical-mint");
 const outputFormat = ref<OutputFormat>("pdf");
 const pageSize = ref<"A4" | "Letter">("A4");
 const orientation = ref<"landscape" | "portrait">("portrait");
@@ -135,6 +144,8 @@ const canContinueImport = computed(
 );
 const activeStepIndex = computed(() => steps.value.findIndex((item) => item.id === step.value));
 const copy = computed(() => workflowCopy(locale.value));
+const homeHref = computed(() => localizedHref(baseURL, "", locale.value));
+const themesHref = computed(() => localizedHref(baseURL, "themes", locale.value));
 const draftStatus = computed(() => {
   if (!draftSavedAt.value) return copy.value.draftNotSaved;
   return `${copy.value.draftSaved} ${new Intl.DateTimeFormat(locale.value, {
@@ -293,7 +304,7 @@ async function loadDraft(): Promise<void> {
     if (!draft) return;
     markdown.value = draft.markdown;
     fileName.value = draft.fileName;
-    selectedThemeId.value = draft.selectedThemeId;
+    if (!requestedThemeId) selectedThemeId.value = draft.selectedThemeId;
     outputFormat.value = draft.outputFormat;
     pageSize.value = draft.pageSize;
     orientation.value = draft.orientation;
@@ -302,7 +313,9 @@ async function loadDraft(): Promise<void> {
     documentForm.author = draft.author;
     documentForm.subtitle = draft.subtitle;
     documentForm.title = draft.title;
-    if (draft.locale === "en" || draft.locale === "zh-CN") locale.value = draft.locale;
+    if (!requestedLocale && (draft.locale === "en" || draft.locale === "zh-CN")) {
+      locale.value = draft.locale;
+    }
     if (draft.features) Object.assign(features, draft.features);
     draftSavedAt.value = draft.updatedAt;
   } catch {
@@ -466,6 +479,11 @@ function labeledState(state: string): string {
   return stateLabel(state, locale.value);
 }
 
+function toggleLocale(): void {
+  locale.value = locale.value === "zh-CN" ? "en" : "zh-CN";
+  void router.replace({ query: { ...route.query, lang: locale.value } });
+}
+
 watch(
   [
     markdown,
@@ -498,18 +516,14 @@ onBeforeUnmount(() => {
 <template>
   <div class="site-shell" :lang="locale">
     <header class="site-header">
-      <a class="brand" :href="baseURL" aria-label="MarkdownMint home">
+      <a class="brand" :href="homeHref" aria-label="MarkdownMint home">
         <span class="brand-mark">M</span>
         <span>MarkdownMint</span>
       </a>
       <div class="header-actions">
-        <a class="header-link" :href="`${baseURL}themes`">Themes</a>
+        <a class="header-link" :href="themesHref">{{ locale === "en" ? "Themes" : "主题" }}</a>
         <span class="draft-status" role="status">{{ draftStatus }}</span>
-        <button
-          class="language-toggle"
-          type="button"
-          @click="locale = locale === 'zh-CN' ? 'en' : 'zh-CN'"
-        >
+        <button class="language-toggle" type="button" @click="toggleLocale">
           {{ locale === "zh-CN" ? "EN" : "中文" }}
         </button>
       </div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /* eslint-disable vue/html-closing-bracket-newline, vue/html-indent, vue/html-self-closing */
-import { useRoute, useRuntimeConfig } from "#imports";
+import { useRoute, useRuntimeConfig, useState } from "#imports";
 import { computed, onBeforeUnmount, ref } from "vue";
 
 import { createThemePreviewHtml } from "@markdown-mint/theme-runtime";
@@ -11,6 +11,10 @@ import {
   launchThemeDetails,
   launchThemes,
 } from "@markdown-mint/themes";
+
+import { stateLabel, type Locale } from "../../utils/export-types";
+import { localizedHref, parseLocale } from "../../utils/locale";
+import { localizeTheme, themeDetailCopy } from "../../utils/theme-i18n";
 
 interface SampleJob {
   artifact?: {
@@ -33,16 +37,35 @@ const rendererUrl = String(config.public.rendererUrl ?? "http://127.0.0.1:4310")
   "",
 );
 const themeId = String(route.params.id);
+const locale = useState<Locale>("app-locale", () => parseLocale(route.query.lang) ?? "zh-CN");
 const manifest = launchThemes.find((theme) => theme.id === themeId);
 const bundle = launchThemeBundles.find((theme) => theme.manifest.id === themeId);
 const details = launchThemeDetails.find((theme) => theme.id === themeId);
-const preview = bundle
-  ? createThemePreviewHtml(bundle, {
-      bodyHtml: launchPreviewBodyHtml,
-      language: "en",
-      title: `${manifest?.name ?? "Theme"} preview`,
-    })
-  : undefined;
+const copy = computed(() => themeDetailCopy(locale.value));
+const themesHref = computed(() => localizedHref(baseURL, "themes", locale.value));
+const homeHref = computed(() => localizedHref(baseURL, "", locale.value));
+const useThemeHref = computed(() =>
+  localizedHref(baseURL, "", locale.value, { theme: manifest?.id ?? themeId }),
+);
+const localizedDetails = computed(() =>
+  localizeTheme(themeId, locale.value, {
+    bestFor: details?.bestFor ?? [],
+    category: manifest?.category ?? "",
+    contentCoverage: details?.contentCoverage ?? [],
+    description: manifest?.description ?? "",
+    designPrinciples: details?.designPrinciples ?? [],
+    tagline: details?.tagline ?? manifest?.description ?? "",
+  }),
+);
+const preview = computed(() =>
+  bundle
+    ? createThemePreviewHtml(bundle, {
+        bodyHtml: launchPreviewBodyHtml,
+        language: locale.value,
+        title: `${manifest?.name ?? "Theme"} preview`,
+      })
+    : undefined,
+);
 
 const sampleJob = ref<SampleJob | null>(null);
 const sampleBusy = ref(false);
@@ -86,7 +109,7 @@ function requestBody() {
     },
     document: {
       author: "MarkdownMint",
-      language: "en",
+      language: locale.value,
       title: `${manifest?.name ?? "Theme"} sample`,
     },
     features: { cover: true, footer: true, header: false, pageNumber: true, toc: true },
@@ -114,8 +137,7 @@ async function createPdfSample(): Promise<void> {
     sampleJob.value = (await response.json()) as SampleJob;
     await pollSample(sampleJob.value.id);
   } catch {
-    sampleError.value =
-      "Renderer is not reachable. Start apps/renderer to generate the PDF sample.";
+    sampleError.value = copy.value.rendererError;
     sampleBusy.value = false;
   }
 }
@@ -157,17 +179,21 @@ onBeforeUnmount(clearSampleThumbnail);
 </script>
 
 <template>
-  <main v-if="manifest && details && preview" class="theme-detail-page">
+  <main
+    v-if="manifest && details && preview"
+    class="theme-detail-page"
+    aria-labelledby="theme-detail-title"
+  >
     <section class="detail-hero">
-      <a class="back-link" :href="`${baseURL}themes`">← Theme library</a>
+      <a class="back-link" :href="themesHref">{{ copy.back }}</a>
       <div class="detail-heading">
         <div>
-          <p class="eyebrow">{{ manifest.category }} · v{{ manifest.version }}</p>
-          <h1>{{ manifest.name }}</h1>
-          <p class="gallery-lede">{{ details.tagline }}</p>
+          <p class="eyebrow">{{ localizedDetails.category }} · v{{ manifest.version }}</p>
+          <h1 id="theme-detail-title">{{ manifest.name }}</h1>
+          <p class="gallery-lede">{{ localizedDetails.tagline }}</p>
         </div>
-        <a class="button button--primary" :href="`${baseURL}?theme=${manifest.id}`"
-          >Use this theme <span aria-hidden="true">→</span></a
+        <a class="button button--primary" :href="useThemeHref"
+          >{{ copy.use }} <span aria-hidden="true">→</span></a
         >
       </div>
     </section>
@@ -176,10 +202,10 @@ onBeforeUnmount(clearSampleThumbnail);
       <article class="detail-card detail-card--preview">
         <div class="detail-card-heading">
           <div>
-            <p class="eyebrow">Live HTML sample</p>
-            <h2>Same fixture, different voice.</h2>
+            <p class="eyebrow">{{ copy.htmlSample }}</p>
+            <h2>{{ copy.htmlHeading }}</h2>
           </div>
-          <span class="sample-badge">No scripts</span>
+          <span class="sample-badge">{{ copy.noScripts }}</span>
         </div>
         <iframe
           class="theme-iframe"
@@ -189,18 +215,24 @@ onBeforeUnmount(clearSampleThumbnail);
       </article>
 
       <aside class="detail-card">
-        <p class="eyebrow">Theme contract</p>
-        <h2>Built for {{ details.bestFor[0] }}.</h2>
-        <p>{{ manifest.description }}</p>
-        <h3>Strengths</h3>
+        <p class="eyebrow">{{ copy.contract }}</p>
+        <h2>
+          {{
+            locale === "en"
+              ? `Built for ${localizedDetails.bestFor[0]}.`
+              : `专为${localizedDetails.bestFor[0]}而设计。`
+          }}
+        </h2>
+        <p>{{ localizedDetails.description }}</p>
+        <h3>{{ copy.strengths }}</h3>
         <ul class="detail-list">
-          <li v-for="item in details.designPrinciples" :key="item">{{ item }}</li>
+          <li v-for="item in localizedDetails.designPrinciples" :key="item">{{ item }}</li>
         </ul>
-        <h3>Content coverage</h3>
+        <h3>{{ copy.coverage }}</h3>
         <div class="tag-list">
-          <span v-for="item in details.contentCoverage" :key="item">{{ item }}</span>
+          <span v-for="item in localizedDetails.contentCoverage" :key="item">{{ item }}</span>
         </div>
-        <h3>Declared capabilities</h3>
+        <h3>{{ copy.capabilities }}</h3>
         <div class="capability-list">
           <span v-for="capability in capabilities" :key="capability">✓ {{ capability }}</span>
         </div>
@@ -209,12 +241,9 @@ onBeforeUnmount(clearSampleThumbnail);
 
     <section class="sample-panel">
       <div>
-        <p class="eyebrow">Print sample</p>
-        <h2>Generate the PDF from the same preview source.</h2>
-        <p>
-          The PDF button calls the Renderer API with the shared launch fixture and this theme's
-          manifest defaults.
-        </p>
+        <p class="eyebrow">{{ copy.printSample }}</p>
+        <h2>{{ copy.printHeading }}</h2>
+        <p>{{ copy.printLead }}</p>
         <p v-if="sampleError" class="sample-error" role="alert">{{ sampleError }}</p>
       </div>
       <div class="sample-actions">
@@ -222,8 +251,8 @@ onBeforeUnmount(clearSampleThumbnail);
           v-if="sampleThumbnailUrl && sampleJob?.artifact?.thumbnail"
           class="artifact-preview"
         >
-          <img class="artifact-thumbnail" :src="sampleThumbnailUrl" alt="First page preview" />
-          <figcaption>First page preview</figcaption>
+          <img class="artifact-thumbnail" :src="sampleThumbnailUrl" :alt="copy.firstPage" />
+          <figcaption>{{ copy.firstPage }}</figcaption>
         </figure>
         <button
           class="button button--primary"
@@ -231,7 +260,11 @@ onBeforeUnmount(clearSampleThumbnail);
           :disabled="sampleBusy"
           @click="createPdfSample"
         >
-          {{ sampleBusy ? `Generating · ${sampleJob?.state || "queued"}` : "Generate PDF sample" }}
+          {{
+            sampleBusy
+              ? `${copy.generating} · ${stateLabel(sampleJob?.state || "queued", locale)}`
+              : copy.generate
+          }}
         </button>
         <button
           v-if="sampleJob?.state === 'succeeded'"
@@ -239,18 +272,18 @@ onBeforeUnmount(clearSampleThumbnail);
           type="button"
           @click="downloadPdfSample"
         >
-          Download {{ sampleJob.artifact?.fileName }}
+          {{ copy.download }} {{ sampleJob.artifact?.fileName }}
         </button>
       </div>
     </section>
 
     <footer>
       <span>MarkdownMint</span>
-      <a class="footer-link" :href="baseURL">Start an export</a>
+      <a class="footer-link" :href="homeHref">{{ copy.startExport }}</a>
     </footer>
   </main>
-  <main v-else class="theme-detail-page">
-    <a class="back-link" :href="`${baseURL}themes`">← Theme library</a>
-    <h1>Theme not found</h1>
+  <main v-else class="theme-detail-page" aria-labelledby="theme-not-found-title">
+    <a class="back-link" :href="themesHref">{{ copy.back }}</a>
+    <h1 id="theme-not-found-title">{{ copy.notFound }}</h1>
   </main>
 </template>
