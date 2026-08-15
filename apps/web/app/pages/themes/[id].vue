@@ -179,13 +179,17 @@ onBeforeUnmount(clearSampleThumbnail);
 </script>
 
 <template>
-  <main v-if="manifest && details && preview" class="theme-detail-page">
+  <main
+    v-if="manifest && details && preview"
+    class="theme-detail-page"
+    aria-labelledby="theme-detail-title"
+  >
     <section class="detail-hero">
       <a class="back-link" :href="themesHref">{{ copy.back }}</a>
       <div class="detail-heading">
         <div>
           <p class="eyebrow">{{ localizedDetails.category }} · v{{ manifest.version }}</p>
-          <h1>{{ manifest.name }}</h1>
+          <h1 id="theme-detail-title">{{ manifest.name }}</h1>
           <p class="gallery-lede">{{ localizedDetails.tagline }}</p>
         </div>
         <a class="button button--primary" :href="useThemeHref"
@@ -278,8 +282,8 @@ onBeforeUnmount(clearSampleThumbnail);
       <a class="footer-link" :href="homeHref">{{ copy.startExport }}</a>
     </footer>
   </main>
-  <main v-else class="theme-detail-page">
+  <main v-else class="theme-detail-page" aria-labelledby="theme-not-found-title">
     <a class="back-link" :href="themesHref">{{ copy.back }}</a>
-    <h1>{{ copy.notFound }}</h1>
+    <h1 id="theme-not-found-title">{{ copy.notFound }}</h1>
   </main>
 </template>
